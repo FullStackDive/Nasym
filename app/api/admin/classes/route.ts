@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/server-session";
 import { userHasPermission } from "@/lib/permissions";
 import { z } from "zod";
+import { sendEmail } from "@/lib/email";
 
 export async function GET() {
   const sessions = await prisma.classSession.findMany({
@@ -42,6 +43,27 @@ export async function POST(req: Request) {
       createdById: session.user.id
     },
     select: { id: true, title: true, description: true, scheduledAt: true, isLive: true, roomName: true }
+  });
+
+  // Notify all active users about the new class (fire-and-forget)
+  // TODO: replace with a job queue before scaling to production
+  prisma.user.findMany({ where: { status: "ACTIVE" }, select: { email: true, name: true } }).then((users) => {
+    void Promise.all(
+      users.map((u) =>
+        sendEmail({
+          to: u.email,
+          subject: `New class scheduled: ${created.title}`,
+          html: `
+            <h2>Assalamu alaikum, ${u.name}!</h2>
+            <p>A new class has been scheduled on Noor:</p>
+            <p><strong>${created.title}</strong></p>
+            <p>${created.description}</p>
+            <p>Scheduled at: ${new Date(created.scheduledAt).toLocaleString()}</p>
+            <p><a href="${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/classes">View classes</a></p>
+          `
+        })
+      )
+    );
   });
 
   return NextResponse.json({ session: created });

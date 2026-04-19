@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button, Card, Input } from "@/components/ui";
@@ -17,6 +17,12 @@ export default function AdminPostersClient() {
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // File upload state
+  const [inputMode, setInputMode] = useState<"url" | "file">("url");
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   async function refresh() {
     const res = await fetch("/api/admin/posters");
     const d = await res.json().catch(() => ({}));
@@ -29,6 +35,10 @@ export default function AdminPostersClient() {
     setSelectedId(null);
     setTitle(""); setImageUrl(""); setCtaText(""); setCtaHref("");
     setErr(null);
+    setFileToUpload(null);
+    setUploadPreview(null);
+    setInputMode("url");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function loadForEdit(id: string) {
@@ -41,6 +51,17 @@ export default function AdminPostersClient() {
     setImageUrl(p.imageUrl);
     setCtaText(p.ctaText ?? "");
     setCtaHref(p.ctaHref ?? "");
+    setInputMode("url");
+    setFileToUpload(null);
+    setUploadPreview(null);
+    setErr(null);
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setFileToUpload(file);
+    if (uploadPreview) URL.revokeObjectURL(uploadPreview);
+    setUploadPreview(file ? URL.createObjectURL(file) : null);
     setErr(null);
   }
 
@@ -48,11 +69,35 @@ export default function AdminPostersClient() {
     e.preventDefault();
     setSaving(true);
     setErr(null);
+
+    let finalImageUrl = imageUrl;
+
+    if (inputMode === "file") {
+      if (!fileToUpload) {
+        setErr("Please select an image file.");
+        setSaving(false);
+        return;
+      }
+      const form = new FormData();
+      form.append("file", fileToUpload);
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: form });
+      if (!uploadRes.ok) {
+        const d = await uploadRes.json().catch(() => ({}));
+        setErr(d.error ?? "Upload failed.");
+        setSaving(false);
+        return;
+      }
+      const { url } = await uploadRes.json();
+      finalImageUrl = url;
+    }
+
     const payload = {
-      title, imageUrl,
+      title,
+      imageUrl: finalImageUrl,
       ctaText: ctaText || undefined,
       ctaHref: ctaHref || undefined
     };
+
     const res = await fetch(
       selectedId ? `/api/admin/posters/${selectedId}` : "/api/admin/posters",
       { method: selectedId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
@@ -72,6 +117,8 @@ export default function AdminPostersClient() {
     if (selectedId === id) resetForm();
     await refresh();
   }
+
+  const previewSrc = inputMode === "file" ? uploadPreview : (imageUrl || null);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -94,16 +141,58 @@ export default function AdminPostersClient() {
               <label className="text-sm font-semibold">Title</label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
             </div>
+
+            {/* Image input toggle */}
             <div>
-              <label className="text-sm font-semibold">Image URL</label>
-              <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} type="url" required />
-              <p className="mt-1 text-xs text-slate-500">Tip: use a high-res HTTPS image URL.</p>
+              <label className="mb-1 block text-sm font-semibold">Image</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setInputMode("url")}
+                  className={`rounded-xl border px-3 py-1.5 text-sm font-semibold transition ${inputMode === "url" ? "border-brand-500 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                >
+                  URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode("file")}
+                  className={`rounded-xl border px-3 py-1.5 text-sm font-semibold transition ${inputMode === "file" ? "border-brand-500 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                >
+                  Upload file
+                </button>
+              </div>
+
+              {inputMode === "url" ? (
+                <div className="mt-2">
+                  <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} type="url" required placeholder="https://example.com/image.jpg" />
+                  <p className="mt-1 text-xs text-slate-500">Tip: use a high-res HTTPS image URL.</p>
+                </div>
+              ) : (
+                <div className="mt-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
+                    required={!selectedId}
+                  />
+                  <p className="mt-1 text-xs text-slate-500">JPEG, PNG, WebP or GIF · max 5 MB</p>
+                </div>
+              )}
             </div>
-            {selectedId && imageUrl && (
+
+            {/* Image preview */}
+            {previewSrc && (
               <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl">
-                <Image src={imageUrl} alt="Preview" fill className="object-cover" sizes="400px" />
+                {inputMode === "file" ? (
+                  <img src={previewSrc} alt="Preview" className="h-full w-full object-cover" />
+                ) : (
+                  <Image src={previewSrc} alt="Preview" fill className="object-cover" sizes="400px" />
+                )}
               </div>
             )}
+
             <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <label className="text-sm font-semibold">CTA Text (optional)</label>

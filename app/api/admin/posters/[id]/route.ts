@@ -6,7 +6,10 @@ import { z } from "zod";
 
 const schema = z.object({
   title: z.string().min(3).max(120),
-  imageUrl: z.string().url(),
+  imageUrl: z.string().min(1).refine(
+    (v) => v.startsWith("/") || v.startsWith("http://") || v.startsWith("https://"),
+    { message: "Must be a URL or a root-relative path" }
+  ),
   ctaText: z.string().min(2).max(40).optional(),
   ctaHref: z.string().min(1).max(200).optional()
 });
