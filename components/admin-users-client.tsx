@@ -45,7 +45,8 @@ export default function AdminUsersClient() {
   }
 
   useEffect(() => {
-    refresh();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
   }, []);
 
   function pick(u: UserRow) {

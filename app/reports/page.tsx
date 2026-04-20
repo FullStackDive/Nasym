@@ -21,7 +21,8 @@ export default function ReportsPage() {
   }
 
   useEffect(() => {
-    refresh();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
   }, []);
 
   async function submit(e: React.FormEvent) {

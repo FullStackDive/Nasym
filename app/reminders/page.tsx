@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Badge, Button, Card } from "@/components/ui";
 
@@ -36,6 +37,7 @@ export default function RemindersPage() {
         .finally(() => setLoading(false));
     } else {
       const raw = localStorage.getItem(storageKey);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState(raw ? JSON.parse(raw) : {});
       setLoading(false);
     }
@@ -100,7 +102,7 @@ export default function RemindersPage() {
 
         <div className="mt-5 flex flex-wrap gap-2">
           <Button variant="secondary" onClick={reset}>Reset</Button>
-          <a className="text-sm font-semibold text-brand-800" href="/classes">Join a class →</a>
+          <Link className="text-sm font-semibold text-brand-800" href="/classes">Join a class →</Link>
         </div>
       </Card>
     </div>

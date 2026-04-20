@@ -1,4 +1,4 @@
-# Noor — Islamic Learning & Live Classes (Next.js Fullstack)
+# Nasym-ur-Rahmah — Islamic Learning & Live Classes (Next.js Fullstack)
 
 A single-repo Next.js (App Router) application with:
 - ✅ Responsive Islamic theme (light green + white)

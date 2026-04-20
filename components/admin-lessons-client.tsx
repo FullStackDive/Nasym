@@ -51,7 +51,8 @@ export default function AdminLessonsClient() {
   }
 
   useEffect(() => {
-    refresh();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
   }, []);
 
   async function create(e: React.FormEvent) {

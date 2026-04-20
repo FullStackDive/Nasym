@@ -29,7 +29,8 @@ export default function AdminPostersClient() {
     setItems(d.posters ?? []);
   }
 
-  useEffect(() => { refresh(); }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void refresh(); }, []);
 
   function resetForm() {
     setSelectedId(null);
@@ -186,6 +187,7 @@ export default function AdminPostersClient() {
             {previewSrc && (
               <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl">
                 {inputMode === "file" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={previewSrc} alt="Preview" className="h-full w-full object-cover" />
                 ) : (
                   <Image src={previewSrc} alt="Preview" fill className="object-cover" sizes="400px" />

@@ -31,7 +31,7 @@ export function Navbar() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-extrabold text-slate-900" onClick={close}>
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-600 text-white">ن</span>
-          <span>Noor</span>
+          <span>Nasym-ur-Rahmah</span>
         </Link>
 
         {/* Desktop nav */}

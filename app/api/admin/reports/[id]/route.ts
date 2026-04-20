@@ -46,7 +46,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       html: `
         <h2>Assalamu alaikum, ${reportRecord.reporter.name}!</h2>
         <p>Your report regarding "<strong>${reportRecord.reason}</strong>" has been reviewed and resolved by a moderator.</p>
-        <p>Thank you for helping keep Noor safe.</p>
+        <p>Thank you for helping keep Nasym-ur-Rahmah safe.</p>
       `
     });
   }

@@ -52,7 +52,7 @@ async function main() {
   await prisma.poster.createMany({
     data: [
       {
-        title: "Welcome to Noor — Learn Islam with clarity",
+        title: "Welcome to Nasym-ur-Rahmah — Learn Islam with clarity",
         imageUrl: "https://images.unsplash.com/photo-1602524816367-1d061e1c2cbd?auto=format&fit=crop&w=1600&q=80",
         ctaText: "Explore Classes",
         ctaHref: "/classes",

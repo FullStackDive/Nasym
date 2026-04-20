@@ -55,7 +55,7 @@ export async function POST(req: Request) {
           subject: `New class scheduled: ${created.title}`,
           html: `
             <h2>Assalamu alaikum, ${u.name}!</h2>
-            <p>A new class has been scheduled on Noor:</p>
+            <p>A new class has been scheduled on Nasym-ur-Rahmah:</p>
             <p><strong>${created.title}</strong></p>
             <p>${created.description}</p>
             <p>Scheduled at: ${new Date(created.scheduledAt).toLocaleString()}</p>

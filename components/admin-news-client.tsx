@@ -21,7 +21,8 @@ export default function AdminNewsClient() {
     setPosts(d.posts ?? []);
   }
 
-  useEffect(() => { refresh(); }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void refresh(); }, []);
 
   function resetForm() {
     setSelectedId(null);

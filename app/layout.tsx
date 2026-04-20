@@ -5,7 +5,7 @@ import { Footer } from "@/components/footer";
 import Providers from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "Noor — Islamic Learning & Live Classes",
+  title: "Nasym-ur-Rahmah — Islamic Learning & Live Classes",
   description: "An Islamic learning app for the youth: live classes, news, reminders, and a safe community."
 };
 

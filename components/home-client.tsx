@@ -60,14 +60,8 @@ export default function HomeClient() {
   const [posters, setPosters] = useState<Poster[]>([]);
   const [news, setNews] = useState<News[]>([]);
   const [classes, setClasses] = useState<ClassSession[]>([]);
-  const [ayah, setAyah] = useState(ayahPool[0]);
-  const [hadith, setHadith] = useState(hadithPool[0]);
-
-  useEffect(() => {
-    const day = dayOfYear();
-    setAyah(ayahPool[day % ayahPool.length]);
-    setHadith(hadithPool[(day + 1) % hadithPool.length]);
-  }, []);
+  const [ayah] = useState(() => ayahPool[dayOfYear() % ayahPool.length]);
+  const [hadith] = useState(() => hadithPool[(dayOfYear() + 1) % hadithPool.length]);
 
   useEffect(() => {
     fetch("/api/public/home")
@@ -90,7 +84,7 @@ export default function HomeClient() {
               Learn Islam. Join live classes. Build good habits.
             </h1>
             <p className="mt-4 max-w-xl text-slate-700">
-              Noor is an Islamic learning space designed for young people — live classrooms, reminders, and a positive community.
+              Nasym-ur-Rahmah is an Islamic learning space designed for young people — live classrooms, reminders, and a positive community.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <Link href="/classes"><Button>Browse classes</Button></Link>
@@ -165,7 +159,7 @@ export default function HomeClient() {
       <section className="mx-auto max-w-6xl px-4 pb-2 pt-6">
         <Card className={cn("p-6 bg-brand-50 border-brand-200")}>
           <p className="text-xs font-semibold text-brand-700 uppercase tracking-wider">Hadith of the Day</p>
-          <p className="mt-3 text-base font-semibold text-slate-800">"{hadith.text}"</p>
+          <p className="mt-3 text-base font-semibold text-slate-800">&ldquo;{hadith.text}&rdquo;</p>
           <p className="mt-2 text-xs text-slate-500">{hadith.source}</p>
         </Card>
       </section>

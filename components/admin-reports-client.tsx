@@ -32,7 +32,8 @@ export default function AdminReportsClient() {
   }
 
   useEffect(() => {
-    refresh();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
   }, []);
 
   async function setStatus(id: string, status: "OPEN" | "RESOLVED") {

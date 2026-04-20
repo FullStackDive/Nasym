@@ -39,7 +39,8 @@ export default function AdminQuizzesClient() {
     setLessons(l.lessons ?? []);
   }
 
-  useEffect(() => { refresh(); }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void refresh(); }, []);
 
   function updateQ(i: number, patch: Partial<Question>) {
     setQuestions((prev) => prev.map((q, idx) => (idx === i ? { ...q, ...patch } : q)));

@@ -29,7 +29,8 @@ export default function AdminClassesClient() {
     setItems(d.sessions ?? []);
   }
 
-  useEffect(() => { refresh(); }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void refresh(); }, []);
 
   function resetForm() {
     setSelectedId(null);
