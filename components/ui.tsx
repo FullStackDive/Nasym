@@ -14,10 +14,10 @@ export function Button({
   const base =
     "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-brand-300 disabled:opacity-60 disabled:cursor-not-allowed";
   const styles: Record<string, string> = {
-    primary: "bg-brand-600 text-white hover:bg-brand-700",
-    secondary: "bg-brand-100 text-brand-900 hover:bg-brand-200",
-    ghost: "bg-transparent text-brand-800 hover:bg-brand-50",
-    danger: "bg-red-600 text-white hover:bg-red-700"
+    primary: "bg-brand-600 text-white hover:bg-brand-700 dark:bg-brand-500 dark:hover:bg-brand-600",
+    secondary: "bg-brand-100 text-brand-900 hover:bg-brand-200 dark:bg-brand-900 dark:text-brand-100 dark:hover:bg-brand-800",
+    ghost: "bg-transparent text-brand-800 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-slate-800",
+    danger: "bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
   };
   return <button className={cn(base, styles[variant], className)} {...props} />;
 }
@@ -29,7 +29,7 @@ export function Input({
   return (
     <input
       className={cn(
-        "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100",
+        "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-brand-500 dark:focus:ring-brand-900",
         className
       )}
       {...props}
@@ -44,7 +44,7 @@ export function Textarea({
   return (
     <textarea
       className={cn(
-        "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100",
+        "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-brand-500 dark:focus:ring-brand-900",
         className
       )}
       {...props}
@@ -56,7 +56,7 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
   return (
     <div
       className={cn(
-        "rounded-2xl border border-slate-100 bg-white shadow-sm",
+        "rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900",
         className
       )}
       {...props}
@@ -68,7 +68,7 @@ export function Badge({ className, ...props }: React.HTMLAttributes<HTMLSpanElem
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-900",
+        "inline-flex items-center rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-900 dark:bg-brand-900 dark:text-brand-100",
         className
       )}
       {...props}
