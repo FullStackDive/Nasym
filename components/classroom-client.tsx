@@ -101,32 +101,39 @@ export default function ClassroomClient({ id }: { id: string }) {
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black">{cls.title}</h1>
-          <p className="mt-1 text-sm text-slate-600">{cls.description}</p>
+          <h1 className="text-3xl font-black tracking-tight">{cls.title}</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{cls.description}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge>{cls.isLive ? "Live" : "Scheduled"}</Badge>
-            <span className="text-xs text-slate-500">{formatDate(cls.scheduledAt)}</span>
+            {cls.isLive ? (
+              <Badge className="bg-red-100 text-red-800 ring-red-200 dark:bg-red-900/40 dark:text-red-100 dark:ring-red-700/40">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                Live
+              </Badge>
+            ) : (
+              <Badge variant="muted">Scheduled</Badge>
+            )}
+            <span className="text-xs text-slate-500 dark:text-slate-400">{formatDate(cls.scheduledAt)}</span>
           </div>
         </div>
         <div className="flex gap-2">
-          <Link href="/classes"><Button variant="secondary">Back</Button></Link>
+          <Link href="/classes"><Button variant="secondary">← Back</Button></Link>
         </div>
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-4">
-        <Card className="lg:col-span-3 overflow-hidden">
-          <div className="min-h-[60vh]" ref={containerRef} />
+        <Card className="lg:col-span-3 overflow-hidden ring-1 ring-brand-100/60 dark:ring-brand-900/40">
+          <div className="min-h-[60vh] bg-slate-950" ref={containerRef} />
         </Card>
 
-        <Card className="p-5">
-          <h3 className="font-extrabold">Classroom etiquette</h3>
-          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
-            <li>Be respectful and kind.</li>
-            <li>Keep your mic muted unless speaking.</li>
-            <li>Ask questions in chat and wait your turn.</li>
-            <li>Do not share private info.</li>
+        <Card className="p-6">
+          <h3 className="font-extrabold tracking-tight">Classroom etiquette</h3>
+          <ul className="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+            <li className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-brand-500 shrink-0" /> Be respectful and kind.</li>
+            <li className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-brand-500 shrink-0" /> Keep your mic muted unless speaking.</li>
+            <li className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-brand-500 shrink-0" /> Ask questions in chat and wait your turn.</li>
+            <li className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 rounded-full bg-brand-500 shrink-0" /> Do not share private info.</li>
           </ul>
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-5 text-xs text-slate-500 dark:text-slate-400">
             This live classroom uses Jitsi Meet (WebRTC) embedded via the IFrame API.
           </p>
         </Card>

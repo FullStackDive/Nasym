@@ -76,35 +76,55 @@ export default function HomeClient() {
 
   return (
     <div>
-      <section className="bg-gradient-to-b from-brand-50 to-white">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 md:grid-cols-2 md:items-center">
+      <section className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-brand-50/80 via-white to-white dark:from-brand-950/40 dark:via-slate-950 dark:to-slate-950"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 -right-16 h-72 w-72 rounded-full bg-accent-200/40 blur-3xl dark:bg-accent-700/10"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-brand-200/50 blur-3xl dark:bg-brand-700/10"
+        />
+
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-2 md:items-center md:py-16">
           <div>
-            <Badge className="mb-3">For Youth • Clear • Kind</Badge>
-            <h1 className="text-3xl font-black leading-tight tracking-tight text-slate-900 md:text-5xl">
-              Learn Islam. Join live classes. Build good habits.
+            <Badge variant="accent" className="mb-3">For Youth • Clear • Kind</Badge>
+            <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 md:text-5xl">
+              Learn Islam.{" "}
+              <span className="bg-gradient-to-r from-brand-700 to-brand-500 bg-clip-text text-transparent">
+                Join live classes.
+              </span>{" "}
+              Build good habits.
             </h1>
-            <p className="mt-4 max-w-xl text-slate-700">
+            <p className="mt-4 max-w-xl text-slate-700 dark:text-slate-300">
               Nasym-ur-Rahmah is an Islamic learning space designed for young people — live classrooms, reminders, and a positive community.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
-              <Link href="/classes"><Button>Browse classes</Button></Link>
-              <Link href="/lessons"><Button variant="secondary">Recorded lessons</Button></Link>
-              <Link href="/quizzes"><Button variant="secondary">Quizzes</Button></Link>
-              <Link href="/reminders"><Button variant="secondary">Daily reminders</Button></Link>
+              <Link href="/classes"><Button size="lg">Browse classes</Button></Link>
+              <Link href="/lessons"><Button variant="secondary" size="lg">Recorded lessons</Button></Link>
+              <Link href="/quizzes"><Button variant="ghost" size="lg">Quizzes</Button></Link>
+              <Link href="/reminders"><Button variant="ghost" size="lg">Daily reminders</Button></Link>
             </div>
 
-            <Card className="mt-8 p-5">
-              <p className="text-xs font-semibold text-brand-700 uppercase tracking-wider">Ayah of the Day</p>
-              <p className="mt-1 text-sm font-semibold text-brand-800">{ayah.ref}</p>
-              <p className="mt-2 text-xl font-extrabold text-slate-900">{ayah.arabic}</p>
-              <p className="mt-2 text-sm text-slate-600">{ayah.translit}</p>
-              <p className="mt-3 text-sm text-slate-700">{ayah.meaning}</p>
+            <Card className="mt-8 p-6 ring-1 ring-brand-100/70 dark:ring-brand-900/40">
+              <div className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-500" />
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700 dark:text-brand-300">Ayah of the Day</p>
+              </div>
+              <p className="mt-1 text-sm font-semibold text-brand-800 dark:text-brand-200">{ayah.ref}</p>
+              <p className="arabic mt-3 text-2xl font-extrabold text-slate-900 dark:text-slate-50" dir="rtl">{ayah.arabic}</p>
+              <p className="mt-2 text-sm italic text-slate-600 dark:text-slate-400">{ayah.translit}</p>
+              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{ayah.meaning}</p>
             </Card>
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-2 rounded-3xl bg-brand-100 blur-2xl opacity-60" />
-            <Card className="relative overflow-hidden">
+            <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-brand-200/60 via-accent-100/40 to-transparent blur-2xl opacity-70 dark:from-brand-700/20 dark:via-accent-700/10" />
+            <Card className="relative overflow-hidden ring-1 ring-brand-100/70 dark:ring-brand-900/40">
               {posters.length > 0 ? (
                 <div className="relative aspect-[16/10] w-full">
                   <Image
@@ -115,20 +135,30 @@ export default function HomeClient() {
                     className="object-cover"
                     priority
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
                   <div className="absolute bottom-0 p-5">
-                    <p className="text-white/90 text-sm font-semibold">Featured</p>
-                    <h2 className="mt-1 text-white text-2xl font-black">{posters[0].title}</h2>
+                    <Badge variant="accent" className="mb-2">Featured</Badge>
+                    <h2 className="mt-1 text-white text-2xl font-black drop-shadow">{posters[0].title}</h2>
                     {posters[0].ctaHref && (
                       <Link href={posters[0].ctaHref} className="mt-3 inline-block">
-                        <Button>{posters[0].ctaText ?? "Open"}</Button>
+                        <Button variant="accent">{posters[0].ctaText ?? "Open"}</Button>
                       </Link>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="aspect-[16/10] w-full bg-brand-50 p-8">
-                  <p className="text-slate-700">No posters yet. Admins can add posters from the Admin panel.</p>
+                <div className="relative aspect-[16/10] w-full overflow-hidden p-8 bg-brand-gradient text-white">
+                  <div aria-hidden className="absolute inset-0 opacity-20" style={{
+                    backgroundImage:
+                      "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.5) 0, transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.35) 0, transparent 45%)"
+                  }} />
+                  <div className="relative">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">Welcome</p>
+                    <h2 className="mt-2 text-2xl font-black">A peaceful place to learn.</h2>
+                    <p className="mt-2 max-w-sm text-sm text-white/90">
+                      Admins can showcase posters here from the Admin panel.
+                    </p>
+                  </div>
                 </div>
               )}
             </Card>
@@ -138,7 +168,7 @@ export default function HomeClient() {
                 <Card key={p.id} className="overflow-hidden">
                   <div className="relative aspect-[16/10] w-full">
                     <Image src={p.imageUrl} alt={p.title} fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
-                    <div className="absolute inset-0 bg-black/35" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 to-transparent" />
                     <div className="absolute bottom-0 p-3">
                       <p className="text-xs font-bold text-white line-clamp-2">{p.title}</p>
                     </div>
@@ -146,7 +176,7 @@ export default function HomeClient() {
                 </Card>
               ))}
               {posters.length <= 1 && (
-                <Card className="col-span-2 p-4 text-sm text-slate-600">
+                <Card className="col-span-2 p-4 text-sm text-slate-600 dark:text-slate-300">
                   Add more posters to create an attractive home slider.
                 </Card>
               )}
@@ -157,54 +187,65 @@ export default function HomeClient() {
 
       {/* Hadith of the Day */}
       <section className="mx-auto max-w-6xl px-4 pb-2 pt-6">
-        <Card className={cn("p-6 bg-brand-50 border-brand-200")}>
-          <p className="text-xs font-semibold text-brand-700 uppercase tracking-wider">Hadith of the Day</p>
-          <p className="mt-3 text-base font-semibold text-slate-800">&ldquo;{hadith.text}&rdquo;</p>
-          <p className="mt-2 text-xs text-slate-500">{hadith.source}</p>
+        <Card className={cn("relative overflow-hidden p-6 ring-1 ring-accent-100/70 dark:ring-accent-900/30")}>
+          <div aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-accent-gradient" />
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-700 dark:text-accent-300">Hadith of the Day</p>
+          </div>
+          <p className="mt-3 text-base font-semibold text-slate-800 dark:text-slate-100">&ldquo;{hadith.text}&rdquo;</p>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{hadith.source}</p>
         </Card>
       </section>
 
       <section className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-3">
-        <Card className="p-5 md:col-span-2">
+        <Card className="p-6 md:col-span-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-extrabold">News Board</h3>
-            <Link href="/news" className="text-sm font-semibold">View all</Link>
+            <h3 className="text-lg font-extrabold tracking-tight">News Board</h3>
+            <Link href="/news" className="text-sm font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-300">View all →</Link>
           </div>
           <div className="mt-4 space-y-4">
             {news.length === 0 ? (
-              <p className="text-sm text-slate-600">No news posts yet.</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">No news posts yet.</p>
             ) : (
               news.slice(0, 5).map((n) => (
-                <div key={n.id} className="rounded-2xl border border-slate-100 p-4">
+                <div key={n.id} className="rounded-2xl border border-slate-200/70 bg-white/60 p-4 transition hover:border-brand-200 hover:bg-brand-50/40 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:border-brand-800/60 dark:hover:bg-brand-950/30">
                   <div className="flex flex-wrap items-center gap-2">
-                    {n.pinned && <Badge>Pinned</Badge>}
-                    <p className="text-sm font-extrabold text-slate-900">{n.title}</p>
-                    <span className="text-xs text-slate-500">{new Date(n.createdAt).toLocaleDateString()}</span>
+                    {n.pinned && <Badge variant="accent">Pinned</Badge>}
+                    <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{n.title}</p>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{new Date(n.createdAt).toLocaleDateString()}</span>
                   </div>
-                  <p className="mt-2 text-sm text-slate-700 line-clamp-3">{n.body}</p>
+                  <p className="mt-2 text-sm text-slate-700 line-clamp-3 dark:text-slate-300">{n.body}</p>
                 </div>
               ))
             )}
           </div>
         </Card>
 
-        <Card className="p-5">
-          <h3 className="text-lg font-extrabold">Upcoming Classes</h3>
-          <p className="mt-1 text-sm text-slate-600">Join live sessions (video + chat) with your teacher.</p>
+        <Card className="p-6">
+          <h3 className="text-lg font-extrabold tracking-tight">Upcoming Classes</h3>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Join live sessions (video + chat) with your teacher.</p>
 
           <div className="mt-4 space-y-3">
             {classes.length === 0 ? (
-              <p className="text-sm text-slate-600">No scheduled classes yet.</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">No scheduled classes yet.</p>
             ) : (
               classes.slice(0, 4).map((c) => (
-                <div key={c.id} className="rounded-2xl border border-slate-100 p-4">
+                <div key={c.id} className="rounded-2xl border border-slate-200/70 bg-white/60 p-4 transition hover:border-brand-200 hover:bg-brand-50/40 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:border-brand-800/60 dark:hover:bg-brand-950/30">
                   <div className="flex items-center justify-between">
-                    <p className="font-bold">{c.title}</p>
-                    {c.isLive ? <Badge className="bg-red-100 text-red-800">Live</Badge> : <Badge>Scheduled</Badge>}
+                    <p className="font-bold text-slate-900 dark:text-slate-100">{c.title}</p>
+                    {c.isLive ? (
+                      <Badge className="bg-red-100 text-red-800 ring-red-200 dark:bg-red-900/40 dark:text-red-100 dark:ring-red-700/40">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                        Live
+                      </Badge>
+                    ) : (
+                      <Badge variant="muted">Scheduled</Badge>
+                    )}
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">{formatDate(c.scheduledAt)}</p>
-                  <p className="mt-2 text-sm text-slate-700 line-clamp-2">{c.description}</p>
-                  <Link href={`/classes/${c.id}`} className="mt-3 inline-block text-sm font-semibold">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{formatDate(c.scheduledAt)}</p>
+                  <p className="mt-2 text-sm text-slate-700 line-clamp-2 dark:text-slate-300">{c.description}</p>
+                  <Link href={`/classes/${c.id}`} className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-300">
                     Open classroom →
                   </Link>
                 </div>
@@ -214,16 +255,21 @@ export default function HomeClient() {
         </Card>
       </section>
 
-      <section className="bg-brand-50">
-        <div className="mx-auto max-w-6xl px-4 py-10">
-          <Card className="p-6">
-            <h3 className="text-lg font-extrabold">Personal Habit Tracker</h3>
-            <p className="mt-2 text-sm text-slate-700">
-              Track daily goals like Salah, Qur&apos;an reading, and good deeds. Sign in to sync your progress across devices.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/reminders"><Button>Open Reminders</Button></Link>
-              <Link href="/auth/register"><Button variant="secondary">Create student account</Button></Link>
+      <section className="relative">
+        <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-brand-50 via-white to-accent-50 dark:from-brand-950/40 dark:via-slate-950 dark:to-accent-950/30" />
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <Card className="relative overflow-hidden p-7">
+            <div aria-hidden className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-accent-200/40 blur-2xl dark:bg-accent-700/10" />
+            <div aria-hidden className="absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-brand-200/40 blur-2xl dark:bg-brand-700/10" />
+            <div className="relative">
+              <h3 className="text-xl font-extrabold tracking-tight">Personal Habit Tracker</h3>
+              <p className="mt-2 max-w-2xl text-sm text-slate-700 dark:text-slate-300">
+                Track daily goals like Salah, Qur&apos;an reading, and good deeds. Sign in to sync your progress across devices.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Link href="/reminders"><Button>Open Reminders</Button></Link>
+                <Link href="/auth/register"><Button variant="accent">Create student account</Button></Link>
+              </div>
             </div>
           </Card>
         </div>

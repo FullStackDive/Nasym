@@ -15,25 +15,30 @@ export function Navbar() {
 
   const close = () => setOpen(false);
 
+  const linkCls =
+    "text-sm font-semibold text-slate-700 hover:text-brand-700 dark:text-slate-300 dark:hover:text-brand-300 transition-colors";
+
   const navLinks = (
     <>
-      <Link href="/classes" onClick={close}>Classes</Link>
-      <Link href="/lessons" onClick={close}>Lessons</Link>
-      <Link href="/quizzes" onClick={close}>Quizzes</Link>
-      <Link href="/reports" onClick={close}>Report</Link>
-      <Link href="/news" onClick={close}>News</Link>
-      <Link href="/reminders" onClick={close}>Reminders</Link>
-      {data && <Link href="/dashboard" onClick={close}>Dashboard</Link>}
-      {data && role === "ADMIN" && <Link href="/admin" onClick={close}>Admin</Link>}
+      <Link href="/classes" onClick={close} className={linkCls}>Classes</Link>
+      <Link href="/lessons" onClick={close} className={linkCls}>Lessons</Link>
+      <Link href="/quizzes" onClick={close} className={linkCls}>Quizzes</Link>
+      <Link href="/reports" onClick={close} className={linkCls}>Report</Link>
+      <Link href="/news" onClick={close} className={linkCls}>News</Link>
+      <Link href="/reminders" onClick={close} className={linkCls}>Reminders</Link>
+      {data && <Link href="/dashboard" onClick={close} className={linkCls}>Dashboard</Link>}
+      {data && role === "ADMIN" && <Link href="/admin" onClick={close} className={linkCls}>Admin</Link>}
     </>
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+    <header className="sticky top-0 z-40 border-b border-brand-100/70 bg-white/75 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/70 shadow-[0_1px_0_rgba(16,185,129,0.06)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 font-extrabold text-slate-900 dark:text-slate-100" onClick={close}>
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-600 text-white">ن</span>
-          <span>Nasym-ur-Rahmah</span>
+        <Link href="/" className="flex items-center gap-2.5 font-extrabold text-slate-900 dark:text-slate-100" onClick={close}>
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-glow ring-1 ring-brand-700/30">
+            <span className="text-lg leading-none">ن</span>
+          </span>
+          <span className="tracking-tight">Nasym-ur-Rahmah</span>
         </Link>
 
         {/* Desktop nav */}
@@ -52,7 +57,7 @@ export function Navbar() {
           </button>
           {!data ? (
             <>
-              <Link href="/auth/signin" className="text-sm font-semibold">Sign in</Link>
+              <Link href="/auth/signin" className="text-sm font-semibold text-slate-700 hover:text-brand-700 dark:text-slate-300 dark:hover:text-brand-300">Sign in</Link>
               <Link href="/auth/register">
                 <Button>Register</Button>
               </Link>
@@ -60,7 +65,8 @@ export function Navbar() {
           ) : (
             <>
               <span className="text-sm text-slate-600 dark:text-slate-400">
-                {data.user?.name} • {role}
+                {data.user?.name} <span className="text-slate-300 dark:text-slate-600">•</span>{" "}
+                <span className="text-brand-700 dark:text-brand-300">{role}</span>
               </span>
               <Link href="/profile">
                 <Button variant="ghost">Profile</Button>
