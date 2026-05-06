@@ -67,7 +67,15 @@ type AssignmentSummary = {
 
 type MySubmission = { status: string; score: number | null } | null;
 
-type Tab = "overview" | "modules" | "announcements" | "members" | "assignments";
+type QuizSummary = {
+  id: string;
+  title: string;
+  description: string;
+  module: { id: string; title: string } | null;
+  _count: { questions: number; attempts: number };
+};
+
+type Tab = "overview" | "modules" | "announcements" | "members" | "assignments" | "quizzes";
 
 const fileIcon = (type: string | null) => {
   if (!type) return "download";
@@ -96,6 +104,8 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const [members, setMembers] = useState<{ enrolments: Member[]; teachers: Member[] }>({ enrolments: [], teachers: [] });
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
   const [mySubmissions, setMySubmissions] = useState<Record<string, MySubmission>>({});
+  const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
+  const [myBest, setMyBest] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -115,6 +125,11 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const [uploadModuleId, setUploadModuleId] = useState("");
   const [uploading, setUploading] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
+
+  // Quiz create form
+  const [showQuizForm, setShowQuizForm] = useState(false);
+  const [quizForm, setQuizForm] = useState({ title: "", description: "", moduleId: "" });
+  const [creatingQuiz, setCreatingQuiz] = useState(false);
 
   // Assignment create form
   const [showAssignForm, setShowAssignForm] = useState(false);
@@ -160,6 +175,15 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     }
   }, [courseId]);
 
+  const loadQuizzes = useCallback(async () => {
+    const res = await fetch(`/api/courses/${courseId}/quizzes`);
+    if (res.ok) {
+      const data = await res.json();
+      setQuizzes(data.quizzes);
+      setMyBest(data.myBest ?? {});
+    }
+  }, [courseId]);
+
   useEffect(() => { loadCourse(); }, [loadCourse]);
 
   useEffect(() => {
@@ -167,7 +191,8 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (tab === "announcements") loadAnnouncements();
     if (tab === "members") loadMembers();
     if (tab === "assignments") loadAssignments();
-  }, [tab, loadMaterials, loadAnnouncements, loadMembers, loadAssignments]);
+    if (tab === "quizzes") loadQuizzes();
+  }, [tab, loadMaterials, loadAnnouncements, loadMembers, loadAssignments, loadQuizzes]);
 
   const postAnnouncement = async () => {
     if (!annBody.trim()) return;
@@ -267,6 +292,29 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (res.ok) setAssignments(a => a.filter(x => x.id !== id));
   };
 
+  const createQuiz = async () => {
+    if (!quizForm.title.trim() || !quizForm.description.trim()) return;
+    setCreatingQuiz(true);
+    try {
+      const res = await fetch(`/api/courses/${courseId}/quizzes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: quizForm.title, description: quizForm.description, moduleId: quizForm.moduleId || undefined }),
+      });
+      if (res.ok) {
+        const { quiz } = await res.json();
+        setQuizzes(q => [quiz, ...q]);
+        setQuizForm({ title: "", description: "", moduleId: "" });
+        setShowQuizForm(false);
+      }
+    } finally { setCreatingQuiz(false); }
+  };
+
+  const deleteQuiz = async (id: string) => {
+    const res = await fetch(`/api/courses/${courseId}/quizzes/${id}`, { method: "DELETE" });
+    if (res.ok) setQuizzes(q => q.filter(x => x.id !== id));
+  };
+
   if (loading) {
     return (
       <div className="app">
@@ -292,10 +340,11 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     );
   }
 
-  const tabs: { key: Tab; label: string; icon: "home" | "book" | "newspaper" | "users" | "check" }[] = [
+  const tabs: { key: Tab; label: string; icon: "home" | "book" | "newspaper" | "users" | "check" | "star" }[] = [
     { key: "overview", label: "Overview", icon: "home" },
     { key: "modules", label: "Modules & Materials", icon: "book" },
     { key: "assignments", label: "Assignments", icon: "check" },
+    { key: "quizzes", label: "Quizzes", icon: "star" },
     { key: "announcements", label: "Announcements", icon: "newspaper" },
     { key: "members", label: "Members", icon: "users" },
   ];
@@ -602,6 +651,92 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
                               <div style={{ display:"flex", gap: 4, justifyContent:"flex-end", marginTop: 8 }}>
                                 <span style={{ fontSize: 11, color:"var(--ink-3)" }}>{a._count.submissions} submitted</span>
                                 <button className="btn btn-ghost btn-sm" style={{ color:"var(--danger, #e53e3e)", padding:"2px 6px" }} onClick={() => deleteAssignment(a.id)}>
+                                  <Icon name="trash" size={12}/>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quizzes */}
+          {tab === "quizzes" && (
+            <div>
+              {canEdit && (
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 20 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Quizzes</h2>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowQuizForm(v => !v)}>
+                    <Icon name="plus" size={13}/> New quiz
+                  </button>
+                </div>
+              )}
+
+              {showQuizForm && canEdit && (
+                <div className="surface" style={{ padding: 24, marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>New quiz</div>
+                  <div style={{ display:"flex", flexDirection:"column", gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <label className="label">Title *</label>
+                      <input className="input" value={quizForm.title} onChange={e => setQuizForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Week 3 Comprehension Quiz" />
+                    </div>
+                    <div>
+                      <label className="label">Description *</label>
+                      <textarea className="input" rows={2} value={quizForm.description} onChange={e => setQuizForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description of what this quiz covers…" style={{ resize:"vertical" }} />
+                    </div>
+                    <div>
+                      <label className="label">Module (optional)</label>
+                      <select className="input" value={quizForm.moduleId} onChange={e => setQuizForm(f => ({ ...f, moduleId: e.target.value }))}>
+                        <option value="">No module</option>
+                        {modules.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap: 8 }}>
+                    <button className="btn btn-primary" onClick={createQuiz} disabled={creatingQuiz || !quizForm.title.trim()}>
+                      {creatingQuiz ? "Creating…" : "Create quiz"}
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => setShowQuizForm(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {quizzes.length === 0 ? (
+                <div className="surface" style={{ padding: 48, textAlign:"center", color:"var(--ink-3)" }}>
+                  No quizzes yet.{canEdit ? " Create one above." : ""}
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap: 10 }}>
+                  {quizzes.map(q => {
+                    const best = myBest[q.id];
+                    return (
+                      <div key={q.id} className="surface" style={{ padding: 20 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display:"flex", alignItems:"center", gap: 10, marginBottom: 4 }}>
+                              <a href={`/courses/${courseId}/quizzes/${q.id}`} style={{ fontWeight: 700, fontSize: 15, color:"var(--brand-700)", textDecoration:"none" }}>
+                                {q.title}
+                              </a>
+                              {best !== undefined && (
+                                <span className="chip" style={{ fontSize: 10, background:"color-mix(in oklch, var(--brand-500) 14%, transparent)", color:"var(--brand-800)", borderColor:"transparent" }}>
+                                  Best: {best}%
+                                </span>
+                              )}
+                            </div>
+                            {q.module && <div style={{ fontSize: 12, color:"var(--ink-3)", marginBottom: 4 }}>Module: {q.module.title}</div>}
+                            <p style={{ fontSize: 13, color:"var(--ink-2)", margin: 0 }}>{q.description}</p>
+                          </div>
+                          <div style={{ flexShrink: 0, textAlign:"right", marginLeft: 16 }}>
+                            <div style={{ fontSize: 13, color:"var(--ink-3)" }}>{q._count.questions} question{q._count.questions !== 1 ? "s" : ""}</div>
+                            {canEdit && (
+                              <div style={{ display:"flex", gap: 4, justifyContent:"flex-end", marginTop: 6 }}>
+                                <span style={{ fontSize: 11, color:"var(--ink-3)" }}>{q._count.attempts} attempt{q._count.attempts !== 1 ? "s" : ""}</span>
+                                <button className="btn btn-ghost btn-sm" style={{ color:"var(--danger, #e53e3e)", padding:"2px 6px" }} onClick={() => deleteQuiz(q.id)}>
                                   <Icon name="trash" size={12}/>
                                 </button>
                               </div>
