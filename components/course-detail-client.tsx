@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Icon, Avatar, AppBar } from "./ui";
 import { KhatamPattern } from "./motifs";
 
@@ -85,7 +86,17 @@ type RecordingSummary = {
   uploadedBy: { id: string; name: string };
 };
 
-type Tab = "overview" | "modules" | "announcements" | "members" | "assignments" | "quizzes" | "recordings";
+type ClassSessionSummary = {
+  id: string;
+  title: string;
+  description: string;
+  scheduledAt: string;
+  roomName: string;
+  isLive: boolean;
+  createdBy: { id: string; name: string };
+};
+
+type Tab = "overview" | "modules" | "announcements" | "members" | "assignments" | "quizzes" | "recordings" | "sessions";
 
 const fileIcon = (type: string | null) => {
   if (!type) return "download";
@@ -105,6 +116,7 @@ const timeAgo = (iso: string) => {
 
 const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const { data: session } = useSession();
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("overview");
   const [navTab, setNavTab] = useState("lessons");
   const [course, setCourse] = useState<Course | null>(null);
@@ -117,6 +129,7 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
   const [myBest, setMyBest] = useState<Record<string, number>>({});
   const [recordings, setRecordings] = useState<RecordingSummary[]>([]);
+  const [sessions, setSessions] = useState<ClassSessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -152,6 +165,11 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [assignForm, setAssignForm] = useState({ title: "", instructions: "", moduleId: "", dueAt: "", maxPoints: "100", isPublished: true });
   const [creatingAssign, setCreatingAssign] = useState(false);
+
+  // Session schedule form
+  const [showSessionForm, setShowSessionForm] = useState(false);
+  const [sessionForm, setSessionForm] = useState({ title: "", description: "", scheduledAt: "" });
+  const [creatingSession, setCreatingSession] = useState(false);
 
   const role = session?.user?.role;
   const canEdit = role === "ADMIN" || role === "TEACHER";
@@ -206,6 +224,11 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (res.ok) setRecordings((await res.json()).recordings);
   }, [courseId]);
 
+  const loadSessions = useCallback(async () => {
+    const res = await fetch(`/api/courses/${courseId}/sessions`);
+    if (res.ok) setSessions((await res.json()).sessions);
+  }, [courseId]);
+
   useEffect(() => { loadCourse(); }, [loadCourse]);
 
   useEffect(() => {
@@ -215,7 +238,8 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (tab === "assignments") loadAssignments();
     if (tab === "quizzes") loadQuizzes();
     if (tab === "recordings") loadRecordings();
-  }, [tab, loadMaterials, loadAnnouncements, loadMembers, loadAssignments, loadQuizzes, loadRecordings]);
+    if (tab === "sessions") loadSessions();
+  }, [tab, loadMaterials, loadAnnouncements, loadMembers, loadAssignments, loadQuizzes, loadRecordings, loadSessions]);
 
   const postAnnouncement = async () => {
     if (!annBody.trim()) return;
@@ -369,6 +393,33 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (res.ok) setRecordings(r => r.filter(x => x.id !== id));
   };
 
+  const createSession = async () => {
+    if (!sessionForm.title.trim() || !sessionForm.scheduledAt) return;
+    setCreatingSession(true);
+    try {
+      const res = await fetch(`/api/courses/${courseId}/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: sessionForm.title,
+          description: sessionForm.description || " ",
+          scheduledAt: new Date(sessionForm.scheduledAt).toISOString(),
+        }),
+      });
+      if (res.ok) {
+        const { session: cs } = await res.json();
+        setSessions(s => [...s, cs].sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()));
+        setSessionForm({ title: "", description: "", scheduledAt: "" });
+        setShowSessionForm(false);
+      }
+    } finally { setCreatingSession(false); }
+  };
+
+  const deleteSession = async (id: string) => {
+    const res = await fetch(`/api/courses/${courseId}/sessions/${id}`, { method: "DELETE" });
+    if (res.ok) setSessions(s => s.filter(x => x.id !== id));
+  };
+
   if (loading) {
     return (
       <div className="app">
@@ -394,9 +445,10 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     );
   }
 
-  const tabs: { key: Tab; label: string; icon: "home" | "book" | "newspaper" | "users" | "check" | "star" | "play" }[] = [
+  const tabs: { key: Tab; label: string; icon: "home" | "book" | "newspaper" | "users" | "check" | "star" | "play" | "video" }[] = [
     { key: "overview", label: "Overview", icon: "home" },
     { key: "modules", label: "Modules & Materials", icon: "book" },
+    { key: "sessions", label: "Live Classes", icon: "video" },
     { key: "recordings", label: "Recordings", icon: "play" },
     { key: "assignments", label: "Assignments", icon: "check" },
     { key: "quizzes", label: "Quizzes", icon: "star" },
@@ -709,6 +761,94 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
                                   <Icon name="trash" size={12}/>
                                 </button>
                               </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Live Classes / Sessions */}
+          {tab === "sessions" && (
+            <div>
+              {canEdit && (
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 20 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Live Classes</h2>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowSessionForm(v => !v)}>
+                    <Icon name="plus" size={13}/> Schedule class
+                  </button>
+                </div>
+              )}
+
+              {showSessionForm && canEdit && (
+                <div className="surface" style={{ padding: 24, marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Schedule live class</div>
+                  <div style={{ display:"flex", flexDirection:"column", gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <label className="label">Title *</label>
+                      <input className="input" value={sessionForm.title} onChange={e => setSessionForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Week 3 Live Q&A" />
+                    </div>
+                    <div>
+                      <label className="label">Description (optional)</label>
+                      <textarea className="input" rows={2} value={sessionForm.description} onChange={e => setSessionForm(f => ({ ...f, description: e.target.value }))} placeholder="What will be covered?" style={{ resize:"vertical" }} />
+                    </div>
+                    <div>
+                      <label className="label">Scheduled date & time *</label>
+                      <input className="input" type="datetime-local" value={sessionForm.scheduledAt} onChange={e => setSessionForm(f => ({ ...f, scheduledAt: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap: 8 }}>
+                    <button className="btn btn-primary" onClick={createSession} disabled={creatingSession || !sessionForm.title.trim() || !sessionForm.scheduledAt}>
+                      {creatingSession ? "Scheduling…" : "Schedule"}
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => setShowSessionForm(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {sessions.length === 0 ? (
+                <div className="surface" style={{ padding: 48, textAlign:"center", color:"var(--ink-3)" }}>
+                  No live classes scheduled.{canEdit ? " Schedule one above." : ""}
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap: 10 }}>
+                  {sessions.map(cs => {
+                    const scheduled = new Date(cs.scheduledAt);
+                    const isPast = scheduled.getTime() < Date.now();
+                    return (
+                      <div key={cs.id} className="surface" style={{ padding: 20, borderLeft: cs.isLive ? "3px solid #e53e3e" : undefined }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display:"flex", alignItems:"center", gap: 10, marginBottom: 4 }}>
+                              <span style={{ fontWeight: 700, fontSize: 15 }}>{cs.title}</span>
+                              {cs.isLive && (
+                                <span style={{ background:"#e53e3e", color:"white", fontSize:10, fontWeight:800, padding:"2px 7px", borderRadius:999, letterSpacing:"0.06em" }}>● LIVE</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 13, color:"var(--ink-3)" }}>
+                              <Icon name="calendar" size={12}/>{" "}
+                              {scheduled.toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short", year:"numeric" })}
+                              {" at "}
+                              {scheduled.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" })}
+                              {isPast && !cs.isLive && <span style={{ marginLeft: 8, color:"var(--ink-3)" }}>· Ended</span>}
+                            </div>
+                          </div>
+                          <div style={{ display:"flex", gap: 8, alignItems:"center" }}>
+                            <button
+                              className={cs.isLive ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}
+                              style={cs.isLive ? { background:"#e53e3e", border:"none" } : {}}
+                              onClick={() => router.push(`/live/${cs.roomName}`)}
+                            >
+                              <Icon name="video" size={13}/> {cs.isLive ? "Join Live" : "Enter Room"}
+                            </button>
+                            {canEdit && (
+                              <button className="btn btn-ghost btn-sm" style={{ color:"var(--danger,#e53e3e)", padding:"4px 8px" }} onClick={() => deleteSession(cs.id)}>
+                                <Icon name="trash" size={13}/>
+                              </button>
                             )}
                           </div>
                         </div>
