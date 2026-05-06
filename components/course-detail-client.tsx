@@ -75,7 +75,17 @@ type QuizSummary = {
   _count: { questions: number; attempts: number };
 };
 
-type Tab = "overview" | "modules" | "announcements" | "members" | "assignments" | "quizzes";
+type RecordingSummary = {
+  id: string;
+  title: string;
+  description: string | null;
+  videoUrl: string;
+  durationSec: number | null;
+  createdAt: string;
+  uploadedBy: { id: string; name: string };
+};
+
+type Tab = "overview" | "modules" | "announcements" | "members" | "assignments" | "quizzes" | "recordings";
 
 const fileIcon = (type: string | null) => {
   if (!type) return "download";
@@ -106,6 +116,7 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const [mySubmissions, setMySubmissions] = useState<Record<string, MySubmission>>({});
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
   const [myBest, setMyBest] = useState<Record<string, number>>({});
+  const [recordings, setRecordings] = useState<RecordingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -125,6 +136,12 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const [uploadModuleId, setUploadModuleId] = useState("");
   const [uploading, setUploading] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
+
+  // Recording upload form
+  const [showRecordingForm, setShowRecordingForm] = useState(false);
+  const [recForm, setRecForm] = useState({ title: "", description: "", videoUrl: "" });
+  const [recFile, setRecFile] = useState<File | null>(null);
+  const [uploadingRec, setUploadingRec] = useState(false);
 
   // Quiz create form
   const [showQuizForm, setShowQuizForm] = useState(false);
@@ -184,6 +201,11 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     }
   }, [courseId]);
 
+  const loadRecordings = useCallback(async () => {
+    const res = await fetch(`/api/courses/${courseId}/recordings`);
+    if (res.ok) setRecordings((await res.json()).recordings);
+  }, [courseId]);
+
   useEffect(() => { loadCourse(); }, [loadCourse]);
 
   useEffect(() => {
@@ -192,7 +214,8 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (tab === "members") loadMembers();
     if (tab === "assignments") loadAssignments();
     if (tab === "quizzes") loadQuizzes();
-  }, [tab, loadMaterials, loadAnnouncements, loadMembers, loadAssignments, loadQuizzes]);
+    if (tab === "recordings") loadRecordings();
+  }, [tab, loadMaterials, loadAnnouncements, loadMembers, loadAssignments, loadQuizzes, loadRecordings]);
 
   const postAnnouncement = async () => {
     if (!annBody.trim()) return;
@@ -315,6 +338,37 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (res.ok) setQuizzes(q => q.filter(x => x.id !== id));
   };
 
+  const uploadRecording = async () => {
+    if (!recForm.title.trim()) return;
+    setUploadingRec(true);
+    try {
+      let res;
+      if (recFile) {
+        const form = new FormData();
+        form.append("file", recFile);
+        form.append("title", recForm.title);
+        if (recForm.description) form.append("description", recForm.description);
+        res = await fetch(`/api/courses/${courseId}/recordings`, { method: "POST", body: form });
+      } else if (recForm.videoUrl.trim()) {
+        res = await fetch(`/api/courses/${courseId}/recordings`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: recForm.title, description: recForm.description, videoUrl: recForm.videoUrl }),
+        });
+      } else return;
+      if (res.ok) {
+        const { recording } = await res.json();
+        setRecordings(r => [recording, ...r]);
+        setRecForm({ title: "", description: "", videoUrl: "" }); setRecFile(null); setShowRecordingForm(false);
+      }
+    } finally { setUploadingRec(false); }
+  };
+
+  const deleteRecording = async (id: string) => {
+    const res = await fetch(`/api/courses/${courseId}/recordings/${id}`, { method: "DELETE" });
+    if (res.ok) setRecordings(r => r.filter(x => x.id !== id));
+  };
+
   if (loading) {
     return (
       <div className="app">
@@ -340,9 +394,10 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     );
   }
 
-  const tabs: { key: Tab; label: string; icon: "home" | "book" | "newspaper" | "users" | "check" | "star" }[] = [
+  const tabs: { key: Tab; label: string; icon: "home" | "book" | "newspaper" | "users" | "check" | "star" | "play" }[] = [
     { key: "overview", label: "Overview", icon: "home" },
     { key: "modules", label: "Modules & Materials", icon: "book" },
+    { key: "recordings", label: "Recordings", icon: "play" },
     { key: "assignments", label: "Assignments", icon: "check" },
     { key: "quizzes", label: "Quizzes", icon: "star" },
     { key: "announcements", label: "Announcements", icon: "newspaper" },
@@ -665,6 +720,63 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
             </div>
           )}
 
+          {/* Recordings */}
+          {tab === "recordings" && (
+            <div>
+              {canEdit && (
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 20 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Recordings</h2>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowRecordingForm(v => !v)}>
+                    <Icon name="upload" size={13}/> Add recording
+                  </button>
+                </div>
+              )}
+
+              {showRecordingForm && canEdit && (
+                <div className="surface" style={{ padding: 24, marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Add recording</div>
+                  <div style={{ display:"flex", flexDirection:"column", gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <label className="label">Title *</label>
+                      <input className="input" value={recForm.title} onChange={e => setRecForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Week 3 — Lesson recording" />
+                    </div>
+                    <div>
+                      <label className="label">Description (optional)</label>
+                      <textarea className="input" rows={2} value={recForm.description} onChange={e => setRecForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief summary…" style={{ resize:"vertical" }} />
+                    </div>
+                    <div>
+                      <label className="label">Upload video file</label>
+                      <input type="file" accept="video/*" className="input" style={{ padding:"8px 12px" }} onChange={e => setRecFile(e.target.files?.[0] ?? null)} />
+                    </div>
+                    <div style={{ textAlign:"center", color:"var(--ink-3)", fontSize:13 }}>— or —</div>
+                    <div>
+                      <label className="label">External URL (YouTube embed, Vimeo, etc.)</label>
+                      <input className="input" value={recForm.videoUrl} onChange={e => setRecForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="https://…" disabled={!!recFile} />
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap: 8 }}>
+                    <button className="btn btn-primary" onClick={uploadRecording} disabled={uploadingRec || !recForm.title.trim() || (!recFile && !recForm.videoUrl.trim())}>
+                      {uploadingRec ? "Uploading…" : "Add recording"}
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => { setShowRecordingForm(false); setRecFile(null); }}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {recordings.length === 0 ? (
+                <div className="surface" style={{ padding: 48, textAlign:"center", color:"var(--ink-3)" }}>
+                  No recordings yet.{canEdit ? " Add one above." : ""}
+                </div>
+              ) : (
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                  {recordings.map(rec => (
+                    <RecordingCard key={rec.id} recording={rec} courseId={courseId} canEdit={canEdit} onDelete={deleteRecording} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Quizzes */}
           {tab === "quizzes" && (
             <div>
@@ -878,5 +990,58 @@ const MemberRow = ({ member, i, total }: { member: Member; i: number; total: num
     </div>
   </div>
 );
+
+const RecordingCard = ({
+  recording,
+  courseId,
+  canEdit,
+  onDelete,
+}: {
+  recording: RecordingSummary;
+  courseId: string;
+  canEdit: boolean;
+  onDelete: (id: string) => void;
+}) => {
+  const isPrivate = recording.videoUrl.startsWith("private:");
+  const streamUrl = isPrivate ? `/api/recordings/${recording.id}/stream` : null;
+  const externalUrl = !isPrivate ? recording.videoUrl : null;
+  const duration = recording.durationSec
+    ? `${Math.floor(recording.durationSec / 60)}:${String(recording.durationSec % 60).padStart(2, "0")}`
+    : null;
+
+  return (
+    <div className="surface" style={{ overflow:"hidden" }}>
+      {/* Thumbnail / player preview */}
+      <a href={`/courses/${courseId}/recordings/${recording.id}`} style={{ display:"block", position:"relative", aspectRatio:"16/9", background:"linear-gradient(135deg, var(--brand-700), var(--brand-900))", textDecoration:"none" }}>
+        <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <div style={{ width:52, height:52, borderRadius:"50%", background:"rgba(255,255,255,0.18)", display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(4px)" }}>
+            <Icon name="play" size={22} />
+          </div>
+        </div>
+        {duration && (
+          <span style={{ position:"absolute", bottom:8, right:10, fontSize:11, fontWeight:700, color:"white", background:"rgba(0,0,0,0.55)", padding:"2px 6px", borderRadius:4 }}>{duration}</span>
+        )}
+        {externalUrl && (
+          <span style={{ position:"absolute", top:8, left:10, fontSize:10, fontWeight:700, color:"white", background:"rgba(0,0,0,0.45)", padding:"2px 6px", borderRadius:4 }}>External</span>
+        )}
+        {streamUrl && (
+          <span style={{ position:"absolute", top:8, left:10, fontSize:10, fontWeight:700, color:"white", background:"color-mix(in oklch, var(--brand-700) 80%, black)", padding:"2px 6px", borderRadius:4 }}><Icon name="lock" size={9}/> Private</span>
+        )}
+      </a>
+      <div style={{ padding:"14px 16px 16px" }}>
+        <a href={`/courses/${courseId}/recordings/${recording.id}`} style={{ fontWeight:700, fontSize:14, color:"inherit", textDecoration:"none", display:"block", marginBottom:4 }}>{recording.title}</a>
+        {recording.description && <p style={{ fontSize:12, color:"var(--ink-3)", margin:"0 0 8px", lineHeight:1.5 }}>{recording.description}</p>}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:11, color:"var(--ink-3)" }}>
+          <span>{recording.uploadedBy.name}</span>
+          {canEdit && (
+            <button className="btn btn-ghost btn-sm" style={{ color:"var(--danger,#e53e3e)", padding:"2px 6px" }} onClick={() => onDelete(recording.id)}>
+              <Icon name="trash" size={12}/>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default CourseDetailClient;

@@ -28,3 +28,7 @@ Thumbs.db
 # Editor
 .vscode/settings.json
 .idea/
+
+# Private media storage
+private/recordings/
+public/uploads/
