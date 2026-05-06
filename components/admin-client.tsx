@@ -11,7 +11,7 @@ type NavGroup = { group: string; items: [string, string, IconName][] };
 const adminNav: NavGroup[] = [
   { group: "Overview", items: [["overview","Dashboard","home"],["analytics","Analytics","trend"]] },
   { group: "People", items: [["users","Users","users"],["approvals","Pending approvals","clock"],["invitations","Invitations","mail"],["perms","Roles & permissions","shield"],["reports","Reports & moderation","newspaper"]] },
-  { group: "Content", items: [["courses","Courses","book"],["classes","Classes","video"],["lessons","Lessons","book"],["news","News & posters","newspaper"],["quizzes","Quizzes","check"]] },
+  { group: "Content", items: [["courses","Courses","book"],["classes","Classes","video"],["lessons","Lessons","book"],["news","News & posters","newspaper"],["quizzes","Quizzes","check"],["ask","Ask Us — Q&A","mail"]] },
   { group: "System", items: [["settings","Settings","settings"]] },
 ];
 
@@ -62,6 +62,7 @@ const AdminClient = () => {
   if (view === "invitations") return <AdminShell active="invitations" onNav={setView}><AdminInvitations /></AdminShell>;
   if (view === "courses")     return <AdminShell active="courses"     onNav={setView}><AdminCourses /></AdminShell>;
   if (view === "perms")       return <AdminShell active="perms"       onNav={setView}><AdminPerms /></AdminShell>;
+  if (view === "ask")         return <AdminShell active="ask"         onNav={setView}><AdminAskUs /></AdminShell>;
 
   return (
     <AdminShell active="overview" onNav={setView}>
@@ -844,4 +845,128 @@ const AdminPerms = () => (
     </div>
   </div>
 );
+type AskQuestion = {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  body: string;
+  status: string;
+  createdAt: string;
+  replies: { id: string; body: string; sentAt: string; author: { id: string; name: string } }[];
+};
+
+const AdminAskUs = () => {
+  const [questions, setQuestions] = useState<AskQuestion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("OPEN");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [replyBody, setReplyBody] = useState<Record<string, string>>({});
+  const [sending, setSending] = useState<string | null>(null);
+
+  const load = useCallback(async (status: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/ask?status=${status}`);
+      if (res.ok) setQuestions((await res.json()).questions);
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(filter); }, [filter, load]);
+
+  const sendReply = async (qId: string) => {
+    const body = replyBody[qId]?.trim();
+    if (!body) return;
+    setSending(qId);
+    try {
+      const res = await fetch(`/api/ask/${qId}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      if (res.ok) {
+        const { reply } = await res.json();
+        setQuestions(qs => qs.map(q => q.id === qId ? { ...q, status: "ANSWERED", replies: [...q.replies, reply] } : q));
+        setReplyBody(r => ({ ...r, [qId]: "" }));
+      }
+    } finally { setSending(null); }
+  };
+
+  return (
+    <div style={{ padding: "32px 36px 56px" }}>
+      <div className="eyebrow">Community</div>
+      <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing:"-0.025em", margin: "6px 0 24px" }}>Ask Us — Q&A</h1>
+
+      <div style={{ display:"flex", gap: 8, marginBottom: 24 }}>
+        {(["OPEN","ANSWERED","ARCHIVED"] as const).map(s => (
+          <button key={s} className={filter === s ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"} onClick={() => setFilter(s)}>{s}</button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ color:"var(--ink-3)" }}>Loading…</div>
+      ) : questions.length === 0 ? (
+        <div className="surface" style={{ padding: 48, textAlign:"center", color:"var(--ink-3)" }}>
+          No {filter.toLowerCase()} questions.
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap: 12 }}>
+          {questions.map(q => (
+            <div key={q.id} className="surface" style={{ overflow:"hidden" }}>
+              <div
+                style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"18px 22px", cursor:"pointer" }}
+                onClick={() => setExpanded(exp => exp === q.id ? null : q.id)}
+              >
+                <div style={{ flex: 1 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap: 10, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 700, fontSize: 15 }}>{q.subject}</span>
+                    <span className="chip" style={{ fontSize: 10 }}>{q.status}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color:"var(--ink-3)" }}>
+                    {q.name} · {q.email} · {new Date(q.createdAt).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" })}
+                  </div>
+                </div>
+                <span style={{ color:"var(--ink-3)", marginLeft: 12 }}>{expanded === q.id ? "▲" : "▼"}</span>
+              </div>
+
+              {expanded === q.id && (
+                <div style={{ borderTop:"1px solid var(--hairline)", padding:"18px 22px" }}>
+                  <p style={{ margin:"0 0 20px", lineHeight: 1.7, whiteSpace:"pre-wrap", color:"var(--ink-2)" }}>{q.body}</p>
+
+                  {q.replies.length > 0 && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, textTransform:"uppercase", letterSpacing:"0.08em", color:"var(--ink-3)", marginBottom: 10 }}>Replies</div>
+                      {q.replies.map(r => (
+                        <div key={r.id} style={{ background:"var(--bg-soft)", borderRadius: 10, padding:"14px 16px", marginBottom: 8 }}>
+                          <div style={{ fontSize: 12, color:"var(--ink-3)", marginBottom: 6 }}>{r.author.name} · {new Date(r.sentAt).toLocaleDateString("en-GB", { day:"numeric", month:"short" })}</div>
+                          <p style={{ margin: 0, lineHeight: 1.65, whiteSpace:"pre-wrap", fontSize: 14 }}>{r.body}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="label">Reply</label>
+                    <textarea
+                      className="input"
+                      rows={4}
+                      value={replyBody[q.id] ?? ""}
+                      onChange={e => setReplyBody(r => ({ ...r, [q.id]: e.target.value }))}
+                      placeholder="Your reply to the questioner…"
+                      style={{ resize:"vertical", marginBottom: 10 }}
+                    />
+                    <button className="btn btn-primary btn-sm" onClick={() => sendReply(q.id)} disabled={sending === q.id || !replyBody[q.id]?.trim()}>
+                      {sending === q.id ? "Sending…" : "Send reply"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default AdminClient;
