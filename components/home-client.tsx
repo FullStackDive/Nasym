@@ -1,279 +1,192 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { Badge, Button, Card, cn } from "@/components/ui";
+import { useState } from "react";
+import { Icon, LogoMark, AppBar } from "./ui";
+import { Breeze, KhatamPattern, LeafSprig } from "./motifs";
 
-type Poster = { id: string; title: string; imageUrl: string; ctaText?: string | null; ctaHref?: string | null };
-type News = { id: string; title: string; body: string; pinned: boolean; createdAt: string };
-type ClassSession = { id: string; title: string; description: string; scheduledAt: string; isLive: boolean };
+// TODO: replace with API fetch (e.g. GET /api/ayah/today)
+const ayah = {
+  arabic: "وَقُل رَّبِّ زِدْنِي عِلْمًا",
+  translit: "Wa qul rabbi zidnī ʿilmā",
+  meaning: "“My Lord, increase me in knowledge.”",
+  ref: "Sūrah Ṭā Hā · 20:114",
+};
 
-const ayahPool = [
-  { arabic: "وَقُل رَّبِّ زِدْنِي عِلْمًا", translit: "Wa qur rabbi zidni 'ilma", ref: "Qur'an 20:114", meaning: "\"My Lord, increase me in knowledge.\"" },
-  { arabic: "إِنَّ مَعَ الْعُسْرِ يُسْرًا", translit: "Inna ma'al 'usri yusra", ref: "Qur'an 94:6", meaning: "\"With hardship comes ease.\"" },
-  { arabic: "وَأَقِيمُوا الصَّلَاةَ", translit: "Wa aqeemus-salah", ref: "Qur'an 2:43", meaning: "\"Establish prayer.\"" },
-  { arabic: "وَاعْتَصِمُوا بِحَبْلِ اللَّهِ جَمِيعًا", translit: "Wa'tasimoo bihablillahi jami'an", ref: "Qur'an 3:103", meaning: "\"Hold firmly to the rope of Allah all together, and do not become divided.\"" },
-  { arabic: "إِنَّ أَكْرَمَكُمْ عِندَ اللَّهِ أَتْقَاكُمْ", translit: "Inna akramakum 'indallahi atqakum", ref: "Qur'an 49:13", meaning: "\"The most noble of you in the sight of Allah is the most righteous.\"" },
-  { arabic: "فَاذْكُرُونِي أَذْكُرْكُمْ", translit: "Fadhkurooni adhkurkum", ref: "Qur'an 2:152", meaning: "\"Remember Me, and I will remember you.\"" },
-  { arabic: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا", translit: "La yukallifu Allahu nafsan illa wus'aha", ref: "Qur'an 2:286", meaning: "\"Allah does not burden a soul beyond that it can bear.\"" },
-  { arabic: "قُلْ يَا عِبَادِيَ الَّذِينَ أَسْرَفُوا عَلَىٰ أَنفُسِهِمْ لَا تَقْنَطُوا مِن رَّحْمَةِ اللَّهِ", translit: "Qul ya 'ibadiyalladhina asrafu 'ala anfusihim la taqnatu min rahmatillah", ref: "Qur'an 39:53", meaning: "\"Do not despair of the mercy of Allah.\"" },
-  { arabic: "لَئِن شَكَرْتُمْ لَأَزِيدَنَّكُمْ", translit: "La'in shakartum la'azeedannakum", ref: "Qur'an 14:7", meaning: "\"If you are grateful, I will surely increase you in favour.\"" },
-  { arabic: "وَسَارِعُوا إِلَىٰ مَغْفِرَةٍ مِّن رَّبِّكُمْ", translit: "Wasari'u ila maghfiratin min rabbikum", ref: "Qur'an 3:133", meaning: "\"Race toward forgiveness from your Lord.\"" },
-  { arabic: "اتْلُ مَا أُوحِيَ إِلَيْكَ مِنَ الْكِتَابِ وَأَقِمِ الصَّلَاةَ", translit: "Utlu ma uhiya ilayka minal kitabi wa aqimis salah", ref: "Qur'an 29:45", meaning: "\"Recite what has been revealed to you of the Book and establish prayer.\"" },
-  { arabic: "وَبِالْوَالِدَيْنِ إِحْسَانًا", translit: "Wa bilwalidayni ihsana", ref: "Qur'an 2:83", meaning: "\"Be good to parents.\"" },
-  { arabic: "إِنَّ اللَّهَ مَعَ الصَّابِرِينَ", translit: "Innallaha ma'as sabireen", ref: "Qur'an 2:153", meaning: "\"Indeed, Allah is with the patient.\"" },
-  { arabic: "خُذِ الْعَفْوَ وَأْمُرْ بِالْعُرْفِ", translit: "Khudh al-'afwa wa'mur bil-'urf", ref: "Qur'an 7:199", meaning: "\"Show forgiveness, enjoin good, and turn away from the ignorant.\"" },
-  { arabic: "وَتَعَاوَنُوا عَلَى الْبِرِّ وَالتَّقْوَىٰ", translit: "Wata'awanu 'ala al-birri wat-taqwa", ref: "Qur'an 5:2", meaning: "\"Cooperate in righteousness and piety.\"" },
+// TODO: replace with API fetch (e.g. GET /api/classes/upcoming)
+const upcoming = [
+  { id: 1, title: "Tafsīr of Sūrah al-Kahf", teacher: "Sh. Yusuf al-Madani", time: "Today · 7:00 PM", live: true, students: 142 },
+  { id: 2, title: "Sīrah Series — Year of Sorrow", teacher: "Ust. Maryam Hassan", time: "Tomorrow · 6:30 PM", live: false, students: 89 },
+  { id: 3, title: "Fiqh of Worship for Youth", teacher: "Sh. Ibrahim Daud", time: "Fri · 8:00 PM", live: false, students: 211 },
 ];
 
-const hadithPool = [
-  { text: "The best of you are those who learn the Qur'an and teach it.", source: "Sahih Bukhari 5027" },
-  { text: "Actions are judged by intentions.", source: "Sahih Bukhari 1" },
-  { text: "None of you truly believes until he loves for his brother what he loves for himself.", source: "Sahih Bukhari 13" },
-  { text: "Speak good or remain silent.", source: "Sahih Bukhari 6018" },
-  { text: "The strong person is not the one who can wrestle someone else down. The strong person is the one who can control himself when he is angry.", source: "Sahih Bukhari 6114" },
-  { text: "Make things easy and do not make them difficult; give glad tidings and do not repel people.", source: "Sahih Bukhari 69" },
-  { text: "Smiling at your brother is an act of charity.", source: "Jami' at-Tirmidhi 1956" },
-  { text: "Every act of kindness is charity.", source: "Sahih Bukhari 2989" },
-  { text: "The most beloved of deeds to Allah are those that are most consistent, even if they are small.", source: "Sahih Bukhari 6464" },
-  { text: "Whoever believes in Allah and the Last Day should speak good or remain silent.", source: "Sahih Bukhari 6136" },
-  { text: "He who does not thank people does not thank Allah.", source: "Sunan Abu Dawud 4811" },
-  { text: "Seek knowledge from the cradle to the grave.", source: "Attributed hadith" },
-  { text: "The world is a prison for the believer and a paradise for the disbeliever.", source: "Sahih Muslim 2956" },
-  { text: "Do not be angry, and Paradise is yours.", source: "Musnad Ahmad 9579" },
-  { text: "Whoever removes a worldly hardship from a believer, Allah will remove one of the hardships of the Day of Resurrection from him.", source: "Sahih Muslim 2699" },
+// TODO: replace with API fetch (e.g. GET /api/posts?limit=3)
+const dailyPosts = [
+  { tag: "Reflection", title: "What “Rabbi yassir” really teaches us", meta: "5 min read · Mon" },
+  { tag: "Hadith",     title: "The most beloved deeds are the consistent ones", meta: "Bukhari 6464 · Mon" },
+  { tag: "Q&A",        title: "Can I make duʿāʾ in any language?", meta: "Answered by Sh. Yusuf · Sun" },
 ];
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-}
-
-function dayOfYear() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  return Math.floor((now.getTime() - start.getTime()) / 86400000);
-}
 
 export default function HomeClient() {
-  const [posters, setPosters] = useState<Poster[]>([]);
-  const [news, setNews] = useState<News[]>([]);
-  const [classes, setClasses] = useState<ClassSession[]>([]);
-  const [ayah] = useState(() => ayahPool[dayOfYear() % ayahPool.length]);
-  const [hadith] = useState(() => hadithPool[(dayOfYear() + 1) % hadithPool.length]);
-
-  useEffect(() => {
-    fetch("/api/public/home")
-      .then((r) => r.json())
-      .then((d) => {
-        setPosters(d.posters ?? []);
-        setNews(d.news ?? []);
-        setClasses(d.upcomingClasses ?? []);
-      })
-      .catch(() => {});
-  }, []);
+  const [tab, setTab] = useState("home");
 
   return (
-    <div>
-      <section className="relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-brand-50/80 via-white to-white dark:from-brand-950/40 dark:via-slate-950 dark:to-slate-950"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-24 -right-16 h-72 w-72 rounded-full bg-accent-200/40 blur-3xl dark:bg-accent-700/10"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-brand-200/50 blur-3xl dark:bg-brand-700/10"
-        />
+    <div className="app">
+      <AppBar active={tab} onNav={setTab} showSearch />
+      <div className="app-scroll">
 
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 md:grid-cols-2 md:items-center md:py-16">
-          <div>
-            <Badge variant="accent" className="mb-3">For Youth • Clear • Kind</Badge>
-            <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-900 dark:text-slate-50 md:text-5xl">
-              Learn Islam.{" "}
-              <span className="bg-gradient-to-r from-brand-700 to-brand-500 bg-clip-text text-transparent">
-                Join live classes.
-              </span>{" "}
-              Build good habits.
-            </h1>
-            <p className="mt-4 max-w-xl text-slate-700 dark:text-slate-300">
-              Nasym-ur-Rahmah is an Islamic learning space designed for young people — live classrooms, reminders, and a positive community.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Link href="/classes"><Button size="lg">Browse classes</Button></Link>
-              <Link href="/lessons"><Button variant="secondary" size="lg">Recorded lessons</Button></Link>
-              <Link href="/quizzes"><Button variant="ghost" size="lg">Quizzes</Button></Link>
-              <Link href="/reminders"><Button variant="ghost" size="lg">Daily reminders</Button></Link>
-            </div>
+        {/* HERO */}
+        <section style={{ position: "relative", overflow: "hidden", borderBottom: "1px solid var(--hairline)" }}>
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, var(--mint-bg) 0%, var(--bg) 60%, var(--bg) 100%)" }} />
+          <Breeze opacity={0.35} color="var(--c-mid)" />
+          <div style={{ position: "absolute", top: -80, right: -80, width: 360, height: 360, borderRadius: "50%", background: "radial-gradient(circle, color-mix(in oklch, var(--accent-500) 22%, transparent), transparent 70%)" }} />
 
-            <Card className="mt-8 p-6 ring-1 ring-brand-100/70 dark:ring-brand-900/40">
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-500" />
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700 dark:text-brand-300">Ayah of the Day</p>
+          <div style={{ position: "relative", maxWidth: 1180, margin: "0 auto", padding: "88px 32px 80px", display: "grid", gridTemplateColumns: "1.15fr .85fr", gap: 64, alignItems: "center" }}>
+            <div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "6px 14px 6px 6px", borderRadius: 999, background: "var(--surface)", border: "1px solid var(--hairline)", marginBottom: 26 }}>
+                <span style={{ width: 24, height: 24, borderRadius: 999, background: "var(--brand-700)", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="wind" size={13} /></span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-2)", letterSpacing: "0.02em" }}>nasym · the gentle breeze of mercy</span>
               </div>
-              <p className="mt-1 text-sm font-semibold text-brand-800 dark:text-brand-200">{ayah.ref}</p>
-              <p className="arabic mt-3 text-2xl font-extrabold text-slate-900 dark:text-slate-50" dir="rtl">{ayah.arabic}</p>
-              <p className="mt-2 text-sm italic text-slate-600 dark:text-slate-400">{ayah.translit}</p>
-              <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">{ayah.meaning}</p>
-            </Card>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-brand-200/60 via-accent-100/40 to-transparent blur-2xl opacity-70 dark:from-brand-700/20 dark:via-accent-700/10" />
-            <Card className="relative overflow-hidden ring-1 ring-brand-100/70 dark:ring-brand-900/40">
-              {posters.length > 0 ? (
-                <div className="relative aspect-[16/10] w-full">
-                  <Image
-                    src={posters[0].imageUrl}
-                    alt={posters[0].title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
-                  <div className="absolute bottom-0 p-5">
-                    <Badge variant="accent" className="mb-2">Featured</Badge>
-                    <h2 className="mt-1 text-white text-2xl font-black drop-shadow">{posters[0].title}</h2>
-                    {posters[0].ctaHref && (
-                      <Link href={posters[0].ctaHref} className="mt-3 inline-block">
-                        <Button variant="accent">{posters[0].ctaText ?? "Open"}</Button>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="relative aspect-[16/10] w-full overflow-hidden p-8 bg-brand-gradient text-white">
-                  <div aria-hidden className="absolute inset-0 opacity-20" style={{
-                    backgroundImage:
-                      "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.5) 0, transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.35) 0, transparent 45%)"
-                  }} />
-                  <div className="relative">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">Welcome</p>
-                    <h2 className="mt-2 text-2xl font-black">A peaceful place to learn.</h2>
-                    <p className="mt-2 max-w-sm text-sm text-white/90">
-                      Admins can showcase posters here from the Admin panel.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {posters.slice(1, 5).map((p) => (
-                <Card key={p.id} className="overflow-hidden">
-                  <div className="relative aspect-[16/10] w-full">
-                    <Image src={p.imageUrl} alt={p.title} fill className="object-cover" sizes="(max-width: 768px) 50vw, 25vw" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 to-transparent" />
-                    <div className="absolute bottom-0 p-3">
-                      <p className="text-xs font-bold text-white line-clamp-2">{p.title}</p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-              {posters.length <= 1 && (
-                <Card className="col-span-2 p-4 text-sm text-slate-600 dark:text-slate-300">
-                  Add more posters to create an attractive home slider.
-                </Card>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Hadith of the Day */}
-      <section className="mx-auto max-w-6xl px-4 pb-2 pt-6">
-        <Card className={cn("relative overflow-hidden p-6 ring-1 ring-accent-100/70 dark:ring-accent-900/30")}>
-          <div aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-accent-gradient" />
-          <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent-700 dark:text-accent-300">Hadith of the Day</p>
-          </div>
-          <p className="mt-3 text-base font-semibold text-slate-800 dark:text-slate-100">&ldquo;{hadith.text}&rdquo;</p>
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{hadith.source}</p>
-        </Card>
-      </section>
-
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-3">
-        <Card className="p-6 md:col-span-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-extrabold tracking-tight">News Board</h3>
-            <Link href="/news" className="text-sm font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-300">View all →</Link>
-          </div>
-          <div className="mt-4 space-y-4">
-            {news.length === 0 ? (
-              <p className="text-sm text-slate-600 dark:text-slate-400">No news posts yet.</p>
-            ) : (
-              news.slice(0, 5).map((n) => (
-                <div key={n.id} className="rounded-2xl border border-slate-200/70 bg-white/60 p-4 transition hover:border-brand-200 hover:bg-brand-50/40 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:border-brand-800/60 dark:hover:bg-brand-950/30">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {n.pinned && <Badge variant="accent">Pinned</Badge>}
-                    <p className="text-sm font-extrabold text-slate-900 dark:text-slate-100">{n.title}</p>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">{new Date(n.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-slate-700 line-clamp-3 dark:text-slate-300">{n.body}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <h3 className="text-lg font-extrabold tracking-tight">Upcoming Classes</h3>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Join live sessions (video + chat) with your teacher.</p>
-
-          <div className="mt-4 space-y-3">
-            {classes.length === 0 ? (
-              <p className="text-sm text-slate-600 dark:text-slate-400">No scheduled classes yet.</p>
-            ) : (
-              classes.slice(0, 4).map((c) => (
-                <div key={c.id} className="rounded-2xl border border-slate-200/70 bg-white/60 p-4 transition hover:border-brand-200 hover:bg-brand-50/40 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:border-brand-800/60 dark:hover:bg-brand-950/30">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold text-slate-900 dark:text-slate-100">{c.title}</p>
-                    {c.isLive ? (
-                      <Badge className="bg-red-100 text-red-800 ring-red-200 dark:bg-red-900/40 dark:text-red-100 dark:ring-red-700/40">
-                        <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                        Live
-                      </Badge>
-                    ) : (
-                      <Badge variant="muted">Scheduled</Badge>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{formatDate(c.scheduledAt)}</p>
-                  <p className="mt-2 text-sm text-slate-700 line-clamp-2 dark:text-slate-300">{c.description}</p>
-                  <Link href={`/classes/${c.id}`} className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-300">
-                    Open classroom →
-                  </Link>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-      </section>
-
-      <section className="relative">
-        <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-brand-50 via-white to-accent-50 dark:from-brand-950/40 dark:via-slate-950 dark:to-accent-950/30" />
-        <div className="mx-auto max-w-6xl px-4 py-12">
-          <Card className="relative overflow-hidden p-7">
-            <div aria-hidden className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-accent-200/40 blur-2xl dark:bg-accent-700/10" />
-            <div aria-hidden className="absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-brand-200/40 blur-2xl dark:bg-brand-700/10" />
-            <div className="relative">
-              <h3 className="text-xl font-extrabold tracking-tight">Personal Habit Tracker</h3>
-              <p className="mt-2 max-w-2xl text-sm text-slate-700 dark:text-slate-300">
-                Track daily goals like Salah, Qur&apos;an reading, and good deeds. Sign in to sync your progress across devices.
+              <h1 className="serif" style={{ fontSize: 76, fontWeight: 500, letterSpacing: "-0.025em", lineHeight: 1.0, margin: "8px 0 0", color: "var(--ink)" }}>
+                Where the breeze<br />
+                of <em style={{ color: "var(--brand-700)", fontStyle: "italic" }}>raḥmah</em> reaches<br />
+                the <em style={{ color: "var(--accent-600)", fontStyle: "italic" }}>young heart</em>.
+              </h1>
+              <p style={{ marginTop: 28, fontSize: 18, lineHeight: 1.6, color: "var(--ink-2)", maxWidth: 520 }}>
+                Live classrooms, recorded lessons, and daily reflections — taught with care, designed for the way you learn now.
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link href="/reminders"><Button>Open Reminders</Button></Link>
-                <Link href="/auth/register"><Button variant="accent">Create student account</Button></Link>
+              <div style={{ marginTop: 36, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <button className="btn btn-primary btn-lg">Begin your journey <Icon name="arrow-right" size={16} /></button>
+                <button className="btn btn-secondary btn-lg"><Icon name="play" size={14} /> Watch a lesson</button>
+              </div>
+              <div style={{ marginTop: 44, display: "flex", gap: 40, color: "var(--ink-3)", fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>
+                <div><div className="serif" style={{ fontSize: 32, color: "var(--brand-800)", fontWeight: 500, letterSpacing: "-0.02em", textTransform: "none" }}>4,820</div>active students</div>
+                <div><div className="serif" style={{ fontSize: 32, color: "var(--brand-800)", fontWeight: 500, letterSpacing: "-0.02em", textTransform: "none" }}>320+</div>lessons</div>
+                <div><div className="serif" style={{ fontSize: 32, color: "var(--brand-800)", fontWeight: 500, letterSpacing: "-0.02em", textTransform: "none" }}>12</div>weekly live</div>
               </div>
             </div>
-          </Card>
-        </div>
-      </section>
+
+            {/* AYAH CARD */}
+            <div style={{ position: "relative", padding: 4, borderRadius: 28, background: "linear-gradient(160deg, var(--mint-300), var(--accent-300))", boxShadow: "var(--shadow-3)" }}>
+              <div style={{ background: "var(--surface)", borderRadius: 24, padding: 36, position: "relative", overflow: "hidden" }}>
+                <KhatamPattern opacity={0.05} color="var(--brand-700)" />
+                <div style={{ position: "absolute", top: 22, right: 22, opacity: 0.4 }}><LeafSprig size={36} /></div>
+                <div style={{ position: "relative" }}>
+                  <div className="eyebrow" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--accent-500)" }} /> Āyah of the day
+                  </div>
+                  <p className="arabic" dir="rtl" style={{ fontSize: 46, fontWeight: 700, color: "var(--brand-800)", margin: "22px 0 14px", textAlign: "right", lineHeight: 1.4 }}>{ayah.arabic}</p>
+                  <p className="serif" style={{ fontStyle: "italic", color: "var(--ink-3)", fontSize: 16, margin: 0, fontWeight: 500 }}>{ayah.translit}</p>
+                  <p className="serif" style={{ marginTop: 16, fontSize: 22, color: "var(--ink)", lineHeight: 1.4, fontWeight: 500 }}>{ayah.meaning}</p>
+                  <hr className="divider" style={{ margin: "24px 0" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 12, color: "var(--ink-3)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>{ayah.ref}</span>
+                    <button className="btn btn-mint btn-sm">Listen <Icon name="play" size={12} /></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* UPCOMING */}
+        <section style={{ maxWidth: 1180, margin: "0 auto", padding: "72px 32px 24px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 28 }}>
+            <div>
+              <div className="eyebrow">Live this week</div>
+              <h2 className="serif" style={{ fontSize: 44, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 0" }}>Upcoming classes</h2>
+            </div>
+            <a style={{ color: "var(--brand-700)", fontSize: 14, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>See all <Icon name="arrow-right" size={12} /></a>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+            {upcoming.map((c, i) => (
+              <div key={c.id} className="card" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div style={{ height: 148, position: "relative", background: i === 0 ? "linear-gradient(135deg, var(--brand-700), var(--brand-900))" : i === 1 ? "linear-gradient(135deg, var(--c-mid), var(--brand-700))" : "linear-gradient(135deg, var(--accent-500), var(--accent-600))" }}>
+                  <Breeze opacity={0.3} color="white" />
+                  {c.live && <span className="chip chip-live" style={{ position: "absolute", top: 14, left: 14 }}>LIVE NOW</span>}
+                  <span style={{ position: "absolute", bottom: 14, left: 16, color: "white", fontSize: 12, fontWeight: 600, opacity: 0.9, letterSpacing: "0.04em" }}>{c.time.toUpperCase()}</span>
+                  <span style={{ position: "absolute", top: 14, right: 14, color: "white", opacity: 0.7 }}><LeafSprig size={26} color="white" /></span>
+                </div>
+                <div className="card-pad" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                  <h3 className="serif" style={{ margin: 0, fontSize: 22, fontWeight: 500, letterSpacing: "-0.01em", lineHeight: 1.2 }}>{c.title}</h3>
+                  <p style={{ margin: "6px 0 18px", color: "var(--ink-3)", fontSize: 13 }}>{c.teacher}</p>
+                  <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 12, color: "var(--ink-3)", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="users" size={12} /> {c.students} enrolled</span>
+                    <button className={c.live ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}>{c.live ? "Join now" : "Reserve"}</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* POSTS + ANNOUNCEMENTS */}
+        <section style={{ maxWidth: 1180, margin: "0 auto", padding: "56px 32px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.25fr .85fr", gap: 36 }}>
+            <div>
+              <div className="eyebrow">Daily on the journal</div>
+              <h2 className="serif" style={{ fontSize: 36, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 22px" }}>Today&apos;s reflections</h2>
+              <div className="card" style={{ overflow: "hidden" }}>
+                {dailyPosts.map((p, i) => (
+                  <div key={i} style={{ padding: "22px 24px", borderTop: i ? "1px solid var(--hairline)" : "none", display: "flex", gap: 20, alignItems: "center" }}>
+                    <div style={{ width: 78, height: 78, borderRadius: 14, background: i === 0 ? "var(--mint-bg)" : i === 1 ? "var(--accent-50)" : "var(--brand-50)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: i === 0 ? "var(--brand-700)" : i === 1 ? "var(--accent-600)" : "var(--brand-800)" }}>
+                      <Icon name={i === 0 ? "leaf" : i === 1 ? "book" : "chat"} size={26} stroke={1.4} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <span className={i === 0 ? "chip chip-mint" : i === 1 ? "chip chip-camel" : "chip chip-brand"}>{p.tag}</span>
+                      <h3 className="serif" style={{ margin: "10px 0 4px", fontSize: 20, fontWeight: 500, letterSpacing: "-0.01em", lineHeight: 1.25 }}>{p.title}</h3>
+                      <p style={{ margin: 0, fontSize: 12, color: "var(--ink-3)" }}>{p.meta}</p>
+                    </div>
+                    <Icon name="arrow-right" size={16} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="eyebrow">News</div>
+              <h2 className="serif" style={{ fontSize: 36, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 22px" }}>Announcements</h2>
+              <div className="card card-pad" style={{ background: "linear-gradient(160deg, var(--brand-700), var(--brand-900))", color: "var(--surface)", border: "none", position: "relative", overflow: "hidden" }}>
+                <Breeze opacity={0.18} color="white" />
+                <div style={{ position: "relative" }}>
+                  <span className="chip" style={{ background: "rgba(255,255,255,0.16)", color: "white", borderColor: "rgba(255,255,255,0.25)" }}>📌 Pinned</span>
+                  <h3 className="serif" style={{ margin: "14px 0 8px", fontSize: 22, fontWeight: 500, letterSpacing: "-0.01em" }}>Ramadan 1447 schedule</h3>
+                  <p style={{ margin: 0, fontSize: 14, color: "rgba(255,255,255,0.82)", lineHeight: 1.6 }}>Nightly tafsīr, qiyām duʿāʾ sessions, and a youth I&apos;tikāf programme. Reservations open Monday.</p>
+                  <button className="btn btn-mint btn-sm" style={{ marginTop: 18 }}>Read full notice <Icon name="arrow-right" size={12} /></button>
+                </div>
+              </div>
+              <div className="card card-pad" style={{ marginTop: 14 }}>
+                <span style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>3 days ago</span>
+                <h3 className="serif" style={{ margin: "8px 0 6px", fontSize: 20, fontWeight: 500 }}>New series: Akhlāq for teens</h3>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>10 short videos, every Sunday.</p>
+              </div>
+              <div className="card card-pad" style={{ marginTop: 14 }}>
+                <span style={{ fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>Last week</span>
+                <h3 className="serif" style={{ margin: "8px 0 6px", fontSize: 20, fontWeight: 500 }}>Community ifṭār — Sat 14th</h3>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>Volunteers needed.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* FOOTER */}
+        <section style={{ background: "var(--brand-900)", color: "var(--surface)", padding: "56px 32px", position: "relative", overflow: "hidden" }}>
+          <Breeze opacity={0.18} color="var(--mint-300)" />
+          <div style={{ position: "relative", maxWidth: 1180, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 22 }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}><LogoMark size={32} /></span>
+                <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: "0.04em" }}>NASYM UR RAHMAH</div>
+              </div>
+              <p style={{ marginTop: 16, color: "rgba(255,255,255,0.65)", fontSize: 13, maxWidth: 480 }}>An open Islamic learning space. Free for students. Built with sincerity.</p>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="btn" style={{ background: "transparent", color: "var(--surface)", borderColor: "rgba(255,255,255,0.3)" }}>Sign in</button>
+              <button className="btn btn-mint">Create account</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
     </div>
   );
 }

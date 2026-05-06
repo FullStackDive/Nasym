@@ -33,11 +33,16 @@ export const authOptions: NextAuthOptions = {
         const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
         if (!ok) return null;
 
+        if (user.status !== "ACTIVE") {
+          throw new Error(`ACCOUNT_${user.status}`);
+        }
+
         return {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          status: user.status
         } as any;
       }
     })
@@ -47,12 +52,14 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.uid = (user as any).id;
         token.role = (user as any).role;
+        token.status = (user as any).status;
       }
       return token;
     },
     async session({ session, token }) {
       (session as any).user.id = token.uid;
       (session as any).user.role = token.role;
+      (session as any).user.status = token.status;
       return session;
     }
   }

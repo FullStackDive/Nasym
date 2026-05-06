@@ -1,72 +1,75 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  darkMode: "class",
+  darkMode: ["class", '[data-theme="dark"]'],
   content: [
     "./app/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}"
+    "./components/**/*.{ts,tsx}",
+    "./pages/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
       colors: {
+        bg: "var(--bg)",
+        "bg-soft": "var(--bg-soft)",
+        surface: "var(--surface)",
+        "surface-2": "var(--surface-2)",
+        ink: {
+          DEFAULT: "var(--ink)",
+          2: "var(--ink-2)",
+          3: "var(--ink-3)",
+        },
+        hairline: "var(--hairline)",
+        "hairline-2": "var(--hairline-2)",
         brand: {
-          50: "#ecfdf5",
-          100: "#d1fae5",
-          200: "#a7f3d0",
-          300: "#6ee7b7",
-          400: "#34d399",
-          500: "#10b981",
-          600: "#059669",
-          700: "#047857",
-          800: "#065f46",
-          900: "#064e3b",
-          950: "#022c22"
+          50: "var(--brand-50)",
+          100: "var(--brand-100)",
+          200: "var(--brand-200)",
+          300: "var(--brand-300)",
+          400: "var(--brand-400)",
+          500: "var(--brand-500)",
+          600: "var(--brand-600)",
+          700: "var(--brand-700)",
+          800: "var(--brand-800)",
+          900: "var(--brand-900)",
         },
         accent: {
-          50: "#fffbeb",
-          100: "#fef3c7",
-          200: "#fde68a",
-          300: "#fcd34d",
-          400: "#fbbf24",
-          500: "#f59e0b",
-          600: "#d97706",
-          700: "#b45309",
-          800: "#92400e",
-          900: "#78350f"
+          50: "var(--accent-50)",
+          100: "var(--accent-100)",
+          300: "var(--accent-300)",
+          500: "var(--accent-500)",
+          600: "var(--accent-600)",
+          700: "var(--accent-700)",
         },
-        ink: {
-          50: "#f8fafc",
-          100: "#f1f5f9",
-          900: "#0b1220",
-          950: "#070b14"
-        }
-      },
-      backgroundImage: {
-        "brand-radial":
-          "radial-gradient(1200px 600px at 10% -10%, rgba(16,185,129,0.18), transparent 60%), radial-gradient(900px 500px at 90% 10%, rgba(245,158,11,0.14), transparent 60%)",
-        "brand-radial-dark":
-          "radial-gradient(1200px 600px at 10% -10%, rgba(16,185,129,0.18), transparent 60%), radial-gradient(900px 500px at 90% 10%, rgba(245,158,11,0.10), transparent 60%)",
-        "brand-gradient":
-          "linear-gradient(135deg, #047857 0%, #059669 50%, #10b981 100%)",
-        "accent-gradient":
-          "linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%)"
-      },
-      boxShadow: {
-        soft: "0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.10)",
-        glow: "0 10px 30px -10px rgba(16, 185, 129, 0.45)"
+        mint: {
+          bg: "var(--mint-bg)",
+          300: "var(--mint-300)",
+          500: "var(--mint-500)",
+        },
       },
       fontFamily: {
-        display: [
-          "ui-sans-serif",
-          "system-ui",
-          "-apple-system",
-          "Segoe UI",
-          "Roboto",
-          "Inter",
-          "sans-serif"
-        ]
-      }
-    }
+        display: ["var(--font-display)"],
+        sans: ["var(--font-sans)"],
+        arabic: ["var(--font-arabic)"],
+      },
+      borderRadius: {
+        sm: "var(--radius-sm)",
+        DEFAULT: "var(--radius)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+      },
+      boxShadow: {
+        1: "var(--shadow-1)",
+        2: "var(--shadow-2)",
+        3: "var(--shadow-3)",
+      },
+      fontSize: {
+        "display-xl": ["64px", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
+        "display-lg": ["48px", { lineHeight: "1.08", letterSpacing: "-0.015em" }],
+        "display-md": ["36px", { lineHeight: "1.10", letterSpacing: "-0.01em" }],
+        "display-sm": ["26px", { lineHeight: "1.15", letterSpacing: "-0.005em" }],
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 } satisfies Config;
