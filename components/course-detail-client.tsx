@@ -52,7 +52,22 @@ type Course = {
   _count: { enrolments: number; materials: number; announcements: number };
 };
 
-type Tab = "overview" | "modules" | "announcements" | "members";
+type AssignmentSummary = {
+  id: string;
+  title: string;
+  instructions: string;
+  dueAt: string | null;
+  maxPoints: number;
+  isPublished: boolean;
+  moduleId: string | null;
+  module: { id: string; title: string } | null;
+  createdBy: { id: string; name: string };
+  _count: { submissions: number };
+};
+
+type MySubmission = { status: string; score: number | null } | null;
+
+type Tab = "overview" | "modules" | "announcements" | "members" | "assignments";
 
 const fileIcon = (type: string | null) => {
   if (!type) return "download";
@@ -79,6 +94,8 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [members, setMembers] = useState<{ enrolments: Member[]; teachers: Member[] }>({ enrolments: [], teachers: [] });
+  const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
+  const [mySubmissions, setMySubmissions] = useState<Record<string, MySubmission>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -98,6 +115,11 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const [uploadModuleId, setUploadModuleId] = useState("");
   const [uploading, setUploading] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
+
+  // Assignment create form
+  const [showAssignForm, setShowAssignForm] = useState(false);
+  const [assignForm, setAssignForm] = useState({ title: "", instructions: "", moduleId: "", dueAt: "", maxPoints: "100", isPublished: true });
+  const [creatingAssign, setCreatingAssign] = useState(false);
 
   const role = session?.user?.role;
   const canEdit = role === "ADMIN" || role === "TEACHER";
@@ -129,13 +151,23 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (res.ok) setMembers(await res.json());
   }, [courseId]);
 
+  const loadAssignments = useCallback(async () => {
+    const res = await fetch(`/api/courses/${courseId}/assignments`);
+    if (res.ok) {
+      const data = await res.json();
+      setAssignments(data.assignments);
+      setMySubmissions(data.mySubmissions ?? {});
+    }
+  }, [courseId]);
+
   useEffect(() => { loadCourse(); }, [loadCourse]);
 
   useEffect(() => {
     if (tab === "modules") loadMaterials();
     if (tab === "announcements") loadAnnouncements();
     if (tab === "members") loadMembers();
-  }, [tab, loadMaterials, loadAnnouncements, loadMembers]);
+    if (tab === "assignments") loadAssignments();
+  }, [tab, loadMaterials, loadAnnouncements, loadMembers, loadAssignments]);
 
   const postAnnouncement = async () => {
     if (!annBody.trim()) return;
@@ -205,6 +237,36 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (res.ok) setMaterials(m => m.filter(x => x.id !== id));
   };
 
+  const createAssignment = async () => {
+    if (!assignForm.title.trim() || !assignForm.instructions.trim()) return;
+    setCreatingAssign(true);
+    try {
+      const res = await fetch(`/api/courses/${courseId}/assignments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: assignForm.title,
+          instructions: assignForm.instructions,
+          moduleId: assignForm.moduleId || undefined,
+          dueAt: assignForm.dueAt ? new Date(assignForm.dueAt).toISOString() : null,
+          maxPoints: parseInt(assignForm.maxPoints) || 100,
+          isPublished: assignForm.isPublished,
+        }),
+      });
+      if (res.ok) {
+        const { assignment } = await res.json();
+        setAssignments(a => [assignment, ...a]);
+        setAssignForm({ title: "", instructions: "", moduleId: "", dueAt: "", maxPoints: "100", isPublished: true });
+        setShowAssignForm(false);
+      }
+    } finally { setCreatingAssign(false); }
+  };
+
+  const deleteAssignment = async (id: string) => {
+    const res = await fetch(`/api/courses/${courseId}/assignments/${id}`, { method: "DELETE" });
+    if (res.ok) setAssignments(a => a.filter(x => x.id !== id));
+  };
+
   if (loading) {
     return (
       <div className="app">
@@ -230,9 +292,10 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     );
   }
 
-  const tabs: { key: Tab; label: string; icon: "home" | "book" | "newspaper" | "users" }[] = [
+  const tabs: { key: Tab; label: string; icon: "home" | "book" | "newspaper" | "users" | "check" }[] = [
     { key: "overview", label: "Overview", icon: "home" },
     { key: "modules", label: "Modules & Materials", icon: "book" },
+    { key: "assignments", label: "Assignments", icon: "check" },
     { key: "announcements", label: "Announcements", icon: "newspaper" },
     { key: "members", label: "Members", icon: "users" },
   ];
@@ -433,6 +496,121 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
                       <MaterialRow key={mat.id} material={mat} canEdit={canEdit} onDelete={deleteMaterial} />
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Assignments */}
+          {tab === "assignments" && (
+            <div>
+              {canEdit && (
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 20 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Assignments</h2>
+                  <button className="btn btn-primary btn-sm" onClick={() => setShowAssignForm(v => !v)}>
+                    <Icon name="plus" size={13}/> New assignment
+                  </button>
+                </div>
+              )}
+
+              {/* Create form */}
+              {showAssignForm && canEdit && (
+                <div className="surface" style={{ padding: 24, marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>New assignment</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap: 12, marginBottom: 12 }}>
+                    <div style={{ gridColumn:"1 / -1" }}>
+                      <label className="label">Title *</label>
+                      <input className="input" value={assignForm.title} onChange={e => setAssignForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Reflection on Sūrah al-Fātiḥah" />
+                    </div>
+                    <div style={{ gridColumn:"1 / -1" }}>
+                      <label className="label">Instructions *</label>
+                      <textarea className="input" rows={4} value={assignForm.instructions} onChange={e => setAssignForm(f => ({ ...f, instructions: e.target.value }))} placeholder="What should students do?" style={{ resize:"vertical" }} />
+                    </div>
+                    <div>
+                      <label className="label">Due date (optional)</label>
+                      <input className="input" type="datetime-local" value={assignForm.dueAt} onChange={e => setAssignForm(f => ({ ...f, dueAt: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">Max points</label>
+                      <input className="input" type="number" min="1" max="1000" value={assignForm.maxPoints} onChange={e => setAssignForm(f => ({ ...f, maxPoints: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="label">Module (optional)</label>
+                      <select className="input" value={assignForm.moduleId} onChange={e => setAssignForm(f => ({ ...f, moduleId: e.target.value }))}>
+                        <option value="">No module</option>
+                        {modules.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ display:"flex", alignItems:"flex-end", paddingBottom: 4 }}>
+                      <label style={{ display:"flex", alignItems:"center", gap: 8, cursor:"pointer", fontSize: 14, fontWeight: 600 }}>
+                        <input type="checkbox" checked={assignForm.isPublished} onChange={e => setAssignForm(f => ({ ...f, isPublished: e.target.checked }))} />
+                        Publish immediately
+                      </label>
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap: 8 }}>
+                    <button className="btn btn-primary" onClick={createAssignment} disabled={creatingAssign || !assignForm.title.trim()}>
+                      {creatingAssign ? "Creating…" : "Create assignment"}
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => setShowAssignForm(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {assignments.length === 0 ? (
+                <div className="surface" style={{ padding: 48, textAlign:"center", color:"var(--ink-3)" }}>
+                  No assignments yet.{canEdit ? " Create one above." : ""}
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap: 10 }}>
+                  {assignments.map(a => {
+                    const sub = mySubmissions[a.id];
+                    const isOverdue = a.dueAt && new Date(a.dueAt).getTime() < Date.now() && !sub;
+                    return (
+                      <div key={a.id} className="surface" style={{ padding: 20, borderLeft: isOverdue ? "3px solid var(--danger, #e53e3e)" : undefined }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display:"flex", alignItems:"center", gap: 10, marginBottom: 4 }}>
+                              <a href={`/courses/${courseId}/assignments/${a.id}`} style={{ fontWeight: 700, fontSize: 15, color:"var(--brand-700)", textDecoration:"none" }}>
+                                {a.title}
+                              </a>
+                              {!a.isPublished && <span className="chip" style={{ fontSize: 10 }}>Draft</span>}
+                              {sub && (
+                                <span className="chip" style={{
+                                  fontSize: 10,
+                                  background: sub.status === "GRADED" ? "color-mix(in oklch, var(--brand-500) 14%, transparent)" : "color-mix(in oklch, var(--ink-3) 14%, transparent)",
+                                  color: sub.status === "GRADED" ? "var(--brand-800)" : "var(--ink-3)",
+                                  borderColor:"transparent",
+                                }}>
+                                  {sub.status === "GRADED" ? `Graded ${sub.score !== null ? `· ${sub.score}/${a.maxPoints}` : ""}` : sub.status}
+                                </span>
+                              )}
+                            </div>
+                            {a.module && <div style={{ fontSize: 12, color:"var(--ink-3)", marginBottom: 6 }}>Module: {a.module.title}</div>}
+                            <div style={{ fontSize: 13, color:"var(--ink-2)", lineHeight: 1.5, display:"-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                              {a.instructions}
+                            </div>
+                          </div>
+                          <div style={{ flexShrink: 0, textAlign:"right", marginLeft: 16 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color:"var(--brand-700)" }}>{a.maxPoints} pts</div>
+                            {a.dueAt && (
+                              <div style={{ fontSize: 11, color: isOverdue ? "var(--danger, #e53e3e)" : "var(--ink-3)", marginTop: 2 }}>
+                                Due {new Date(a.dueAt).toLocaleDateString("en-GB", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}
+                              </div>
+                            )}
+                            {canEdit && (
+                              <div style={{ display:"flex", gap: 4, justifyContent:"flex-end", marginTop: 8 }}>
+                                <span style={{ fontSize: 11, color:"var(--ink-3)" }}>{a._count.submissions} submitted</span>
+                                <button className="btn btn-ghost btn-sm" style={{ color:"var(--danger, #e53e3e)", padding:"2px 6px" }} onClick={() => deleteAssignment(a.id)}>
+                                  <Icon name="trash" size={12}/>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
