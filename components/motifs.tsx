@@ -27,8 +27,8 @@ export const Breeze = ({
 );
 
 /* Subtle leaf cluster */
-export const LeafSprig = ({ size = 28, color = "#7BA85C" }: { size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
+export const LeafSprig = ({ size = 28, color = "#7BA85C", style }: { size?: number; color?: string; style?: CSSProperties }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden style={style}>
     <path d="M16 28 Q 16 18 22 12 Q 26 9 28 6" stroke={color} strokeWidth="0.8" strokeLinecap="round" />
     <path d="M22 12 q 4 -1 5 2 q -2 4 -5 -2 z" fill={color} opacity="0.85" />
     <path d="M19 18 q 3 -1 4 1.5 q -1.5 3 -4 -1.5 z" fill={color} opacity="0.7" />
@@ -40,11 +40,13 @@ export const LeafSprig = ({ size = 28, color = "#7BA85C" }: { size?: number; col
 export const KhatamPattern = ({
   opacity = 0.05,
   color = "var(--brand-700)",
+  style,
 }: {
   opacity?: number;
   color?: string;
+  style?: CSSProperties;
 }) => (
-  <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity, pointerEvents: "none" }} aria-hidden>
+  <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity, pointerEvents: "none", ...style }} aria-hidden>
     <defs>
       <pattern id="khatam-pat" width="80" height="80" patternUnits="userSpaceOnUse">
         <g fill="none" stroke={color} strokeWidth="1">

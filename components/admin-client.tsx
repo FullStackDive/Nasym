@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Icon, Avatar, AppBar, Stat } from "./ui";
 
 type IconName = "home" | "book" | "video" | "users" | "user" | "newspaper" | "bell" | "settings" | "search" | "play" | "pause" | "mic" | "mic-off" | "cam" | "cam-off" | "hand" | "send" | "rec" | "chat" | "poll" | "notes" | "trophy" | "flame" | "star" | "leaf" | "calendar" | "clock" | "check" | "plus" | "filter" | "more" | "shield" | "globe" | "lock" | "mail" | "moon" | "arrow-right" | "trend" | "download" | "upload" | "edit" | "trash" | "eye" | "key" | "wind";
@@ -9,8 +10,8 @@ type NavGroup = { group: string; items: [string, string, IconName][] };
 
 const adminNav: NavGroup[] = [
   { group: "Overview", items: [["overview","Dashboard","home"],["analytics","Analytics","trend"]] },
-  { group: "People", items: [["users","Users","users"],["perms","Roles & permissions","shield"],["reports","Reports & moderation","newspaper"]] },
-  { group: "Content", items: [["classes","Classes","video"],["lessons","Lessons","book"],["news","News & posters","newspaper"],["quizzes","Quizzes","check"]] },
+  { group: "People", items: [["users","Users","users"],["approvals","Pending approvals","clock"],["invitations","Invitations","mail"],["perms","Roles & permissions","shield"],["reports","Reports & moderation","newspaper"]] },
+  { group: "Content", items: [["courses","Courses","book"],["classes","Classes","video"],["lessons","Lessons","book"],["news","News & posters","newspaper"],["quizzes","Quizzes","check"]] },
   { group: "System", items: [["settings","Settings","settings"]] },
 ];
 
@@ -56,8 +57,11 @@ const AdminShell = ({ active, onNav, children }: { active: string; onNav: (k: st
 const AdminClient = () => {
   const [view, setView] = useState("overview");
 
-  if (view === "users") return <AdminShell active="users" onNav={setView}><AdminUsers /></AdminShell>;
-  if (view === "perms") return <AdminShell active="perms" onNav={setView}><AdminPerms /></AdminShell>;
+  if (view === "users")       return <AdminShell active="users"       onNav={setView}><AdminUsers /></AdminShell>;
+  if (view === "approvals")   return <AdminShell active="approvals"   onNav={setView}><AdminApprovals /></AdminShell>;
+  if (view === "invitations") return <AdminShell active="invitations" onNav={setView}><AdminInvitations /></AdminShell>;
+  if (view === "courses")     return <AdminShell active="courses"     onNav={setView}><AdminCourses /></AdminShell>;
+  if (view === "perms")       return <AdminShell active="perms"       onNav={setView}><AdminPerms /></AdminShell>;
 
   return (
     <AdminShell active="overview" onNav={setView}>
@@ -349,6 +353,468 @@ const PermsDrawer = ({ user, onClose }: { user: AdminUser; onClose: () => void }
           <button className="btn btn-primary">Save changes</button>
         </div>
       </div>
+    </div>
+  );
+};
+
+/* ── Pending Approvals ───────────────────────────────────────── */
+
+type PendingUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+};
+
+const AdminApprovals = () => {
+  const [users, setUsers] = useState<PendingUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/admin/users/pending");
+    if (res.ok) setUsers((await res.json()).users);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const approve = async (id: string) => {
+    setBusy(true);
+    const res = await fetch(`/api/admin/users/${id}/approve`, { method: "POST" });
+    if (res.ok) setUsers(u => u.filter(x => x.id !== id));
+    setBusy(false);
+  };
+
+  const reject = async () => {
+    if (!rejectId) return;
+    setBusy(true);
+    const res = await fetch(`/api/admin/users/${rejectId}/reject`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    });
+    if (res.ok) { setUsers(u => u.filter(x => x.id !== rejectId)); setRejectId(null); setReason(""); }
+    setBusy(false);
+  };
+
+  const timeAgo = (iso: string) => {
+    const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+    if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+    return `${Math.floor(secs / 86400)}d ago`;
+  };
+
+  return (
+    <div style={{ padding: "32px 36px 56px" }}>
+      <div className="eyebrow">People</div>
+      <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing:"-0.025em", margin: "6px 0 6px" }}>Pending approvals</h1>
+      <p style={{ color:"var(--ink-3)", marginTop: 0, marginBottom: 24 }}>Review new accounts that registered via the open sign-up form.</p>
+
+      {loading ? (
+        <div style={{ color:"var(--ink-3)" }}>Loading…</div>
+      ) : users.length === 0 ? (
+        <div className="surface" style={{ padding: 48, textAlign:"center" }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>✓</div>
+          <div style={{ fontWeight: 700 }}>No pending accounts</div>
+          <p style={{ color:"var(--ink-3)", marginTop: 4, fontSize: 14 }}>All caught up.</p>
+        </div>
+      ) : (
+        <div className="surface" style={{ overflow:"hidden" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ color:"var(--ink-3)", textAlign:"left", fontSize: 11, textTransform:"uppercase", letterSpacing:".08em", background:"var(--bg-soft)" }}>
+                <th style={{ padding:"12px 18px" }}>User</th>
+                <th>Role</th>
+                <th>Requested</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u, i) => (
+                <tr key={u.id} style={{ borderTop: i ? "1px solid var(--hairline)" : undefined }}>
+                  <td style={{ padding:"14px 18px" }}>
+                    <div style={{ display:"flex", gap: 10, alignItems:"center" }}>
+                      <Avatar name={u.name} size={32}/>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{u.name}</div>
+                        <div style={{ fontSize: 11, color:"var(--ink-3)" }}>{u.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span className="chip">{u.role}</span></td>
+                  <td style={{ color:"var(--ink-3)" }}>{timeAgo(u.createdAt)}</td>
+                  <td>
+                    <div style={{ display:"flex", gap: 6, justifyContent:"flex-end", paddingRight: 18 }}>
+                      <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => approve(u.id)}>
+                        <Icon name="check" size={13}/> Approve
+                      </button>
+                      <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => { setRejectId(u.id); setReason(""); }}>
+                        <Icon name="trash" size={13}/> Reject
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {rejectId && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(8,32,24,0.4)", display:"flex", alignItems:"center", justifyContent:"center", zIndex: 30 }} onClick={() => setRejectId(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background:"var(--surface)", borderRadius: 18, padding: 28, width: 420, boxShadow:"0 20px 60px rgba(0,0,0,0.2)" }}>
+            <h3 style={{ margin:"0 0 12px", fontSize: 18, fontWeight: 800 }}>Reject account</h3>
+            <p style={{ color:"var(--ink-3)", fontSize: 13, margin:"0 0 14px" }}>Optionally provide a reason (sent to the user).</p>
+            <textarea className="input" rows={3} placeholder="Reason (optional)…" value={reason} onChange={e => setReason(e.target.value)} style={{ resize:"vertical", marginBottom: 14 }} />
+            <div style={{ display:"flex", gap: 8, justifyContent:"flex-end" }}>
+              <button className="btn btn-ghost" onClick={() => setRejectId(null)}>Cancel</button>
+              <button className="btn btn-primary" style={{ background:"var(--danger, #e53e3e)" }} disabled={busy} onClick={reject}>Reject</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Invitations ─────────────────────────────────────────────── */
+
+type Invitation = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  course: { id: string; title: string } | null;
+};
+
+type CourseOption = { id: string; title: string };
+
+const AdminInvitations = () => {
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [courses, setCourses] = useState<CourseOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ email: "", name: "", role: "STUDENT", courseId: "" });
+  const [sending, setSending] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [invRes, cRes] = await Promise.all([
+      fetch("/api/admin/invitations"),
+      fetch("/api/courses"),
+    ]);
+    if (invRes.ok) setInvitations((await invRes.json()).invitations);
+    if (cRes.ok) setCourses((await cRes.json()).courses);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const send = async () => {
+    setFormError("");
+    if (!form.email) { setFormError("Email is required"); return; }
+    setSending(true);
+    const res = await fetch("/api/admin/invitations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: form.email,
+        name: form.name || undefined,
+        role: form.role,
+        courseId: form.courseId || undefined,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setFormError(data.error || "Failed to send"); setSending(false); return; }
+    setInvitations(inv => [data.invitation, ...inv]);
+    setForm({ email: "", name: "", role: "STUDENT", courseId: "" });
+    setShowForm(false);
+    setSending(false);
+  };
+
+  const revoke = async (id: string) => {
+    const res = await fetch(`/api/admin/invitations/${id}`, { method: "DELETE" });
+    if (res.ok) setInvitations(inv => inv.map(x => x.id === id ? { ...x, status: "REVOKED" } : x));
+  };
+
+  const statusColor = (s: string) => {
+    if (s === "PENDING") return { background:"color-mix(in oklch, var(--brand-500) 14%, transparent)", color:"var(--brand-800)", borderColor:"transparent" };
+    if (s === "ACCEPTED") return { background:"color-mix(in oklch, var(--brand-700) 14%, transparent)", color:"var(--brand-900)", borderColor:"transparent" };
+    return { background:"color-mix(in oklch, var(--ink-3) 14%, transparent)", color:"var(--ink-3)", borderColor:"transparent" };
+  };
+
+  const formatDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+
+  return (
+    <div style={{ padding: "32px 36px 56px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom: 24 }}>
+        <div>
+          <div className="eyebrow">People</div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing:"-0.025em", margin: "6px 0 6px" }}>Invitations</h1>
+          <p style={{ color:"var(--ink-3)", marginTop: 0 }}>Invite students or teachers directly — they skip the approval queue.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowForm(v => !v)}>
+          <Icon name="mail" size={14}/> Send invitation
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="surface" style={{ padding: 24, marginBottom: 24 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>New invitation</div>
+          {formError && <div style={{ color:"var(--danger, #e53e3e)", marginBottom: 10, fontSize: 13 }}>{formError}</div>}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div>
+              <label className="label">Email *</label>
+              <input className="input" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="student@example.com" />
+            </div>
+            <div>
+              <label className="label">Name (optional)</label>
+              <input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Pre-fill their name" />
+            </div>
+            <div>
+              <label className="label">Role</label>
+              <select className="input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
+                <option value="STUDENT">Student</option>
+                <option value="TEACHER">Teacher</option>
+                <option value="PARENT">Parent</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Enrol into course (optional)</label>
+              <select className="input" value={form.courseId} onChange={e => setForm(f => ({ ...f, courseId: e.target.value }))}>
+                <option value="">No course</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display:"flex", gap: 8 }}>
+            <button className="btn btn-primary" disabled={sending} onClick={send}>{sending ? "Sending…" : "Send"}</button>
+            <button className="btn btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ color:"var(--ink-3)" }}>Loading…</div>
+      ) : invitations.length === 0 ? (
+        <div className="surface" style={{ padding: 48, textAlign:"center" }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>✉️</div>
+          <div style={{ fontWeight: 700 }}>No invitations yet</div>
+          <p style={{ color:"var(--ink-3)", fontSize: 14, marginTop: 4 }}>Send one above.</p>
+        </div>
+      ) : (
+        <div className="surface" style={{ overflow:"hidden" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ color:"var(--ink-3)", textAlign:"left", fontSize: 11, textTransform:"uppercase", letterSpacing:".08em", background:"var(--bg-soft)" }}>
+                <th style={{ padding:"12px 18px" }}>Recipient</th>
+                <th>Role</th>
+                <th>Course</th>
+                <th>Status</th>
+                <th>Expires</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {invitations.map((inv, i) => (
+                <tr key={inv.id} style={{ borderTop: i ? "1px solid var(--hairline)" : undefined }}>
+                  <td style={{ padding:"12px 18px" }}>
+                    <div style={{ fontWeight: 600 }}>{inv.name || "—"}</div>
+                    <div style={{ fontSize: 11, color:"var(--ink-3)" }}>{inv.email}</div>
+                  </td>
+                  <td><span className="chip">{inv.role}</span></td>
+                  <td style={{ color:"var(--ink-3)", fontSize: 12 }}>{inv.course?.title || "—"}</td>
+                  <td><span className="chip" style={statusColor(inv.status)}>{inv.status}</span></td>
+                  <td style={{ color:"var(--ink-3)", fontSize: 12 }}>{formatDate(inv.expiresAt)}</td>
+                  <td style={{ textAlign:"right", paddingRight: 18 }}>
+                    {inv.status === "PENDING" && (
+                      <button className="btn btn-ghost btn-sm" style={{ color:"var(--danger, #e53e3e)" }} onClick={() => revoke(inv.id)}>
+                        Revoke
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Admin Courses ────────────────────────────────────────────── */
+
+type AdminCourse = {
+  id: string;
+  title: string;
+  slug: string;
+  isPublished: boolean;
+  createdAt: string;
+  owner: { id: string; name: string };
+  _count: { enrolments: number; modules: number };
+};
+
+const AdminCourses = () => {
+  const router = useRouter();
+  const [courses, setCourses] = useState<AdminCourse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", coverUrl: "", isPublished: false });
+  const [creating, setCreating] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/courses");
+    if (res.ok) setCourses((await res.json()).courses);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const create = async () => {
+    setFormError("");
+    if (!form.title.trim() || !form.description.trim()) { setFormError("Title and description are required"); return; }
+    setCreating(true);
+    const res = await fetch("/api/courses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: form.title, description: form.description, coverUrl: form.coverUrl || undefined, isPublished: form.isPublished }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setFormError(data.error || "Failed to create"); setCreating(false); return; }
+    setCourses(c => [data.course, ...c]);
+    setForm({ title: "", description: "", coverUrl: "", isPublished: false });
+    setShowForm(false);
+    setCreating(false);
+  };
+
+  const deleteCourse = async (id: string) => {
+    if (!confirm("Delete this course? This cannot be undone.")) return;
+    const res = await fetch(`/api/courses/${id}`, { method: "DELETE" });
+    if (res.ok) setCourses(c => c.filter(x => x.id !== id));
+  };
+
+  const togglePublish = async (course: AdminCourse) => {
+    const res = await fetch(`/api/courses/${course.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPublished: !course.isPublished }),
+    });
+    if (res.ok) {
+      const { course: updated } = await res.json();
+      setCourses(c => c.map(x => x.id === updated.id ? updated : x));
+    }
+  };
+
+  return (
+    <div style={{ padding: "32px 36px 56px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom: 24 }}>
+        <div>
+          <div className="eyebrow">Content</div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing:"-0.025em", margin: "6px 0 6px" }}>Courses</h1>
+          <p style={{ color:"var(--ink-3)", marginTop: 0 }}>Create and manage courses. Teachers manage content inside each course.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowForm(v => !v)}>
+          <Icon name="plus" size={14}/> New course
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="surface" style={{ padding: 24, marginBottom: 24 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>New course</div>
+          {formError && <div style={{ color:"var(--danger, #e53e3e)", marginBottom: 10, fontSize: 13 }}>{formError}</div>}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div style={{ gridColumn:"1 / -1" }}>
+              <label className="label">Title *</label>
+              <input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Tafsīr of Sūrah al-Kahf" />
+            </div>
+            <div style={{ gridColumn:"1 / -1" }}>
+              <label className="label">Description *</label>
+              <textarea className="input" rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe the course…" style={{ resize:"vertical" }} />
+            </div>
+            <div>
+              <label className="label">Cover image URL (optional)</label>
+              <input className="input" value={form.coverUrl} onChange={e => setForm(f => ({ ...f, coverUrl: e.target.value }))} placeholder="https://…" />
+            </div>
+            <div style={{ display:"flex", alignItems:"flex-end", paddingBottom: 4 }}>
+              <label style={{ display:"flex", alignItems:"center", gap: 8, cursor:"pointer", fontSize: 14, fontWeight: 600 }}>
+                <input type="checkbox" checked={form.isPublished} onChange={e => setForm(f => ({ ...f, isPublished: e.target.checked }))} />
+                Publish immediately
+              </label>
+            </div>
+          </div>
+          <div style={{ display:"flex", gap: 8 }}>
+            <button className="btn btn-primary" disabled={creating} onClick={create}>{creating ? "Creating…" : "Create course"}</button>
+            <button className="btn btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ color:"var(--ink-3)" }}>Loading…</div>
+      ) : courses.length === 0 ? (
+        <div className="surface" style={{ padding: 48, textAlign:"center" }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>📚</div>
+          <div style={{ fontWeight: 700 }}>No courses yet</div>
+          <p style={{ color:"var(--ink-3)", fontSize: 14, marginTop: 4 }}>Create your first course above.</p>
+        </div>
+      ) : (
+        <div className="surface" style={{ overflow:"hidden" }}>
+          <table style={{ width:"100%", borderCollapse:"collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ color:"var(--ink-3)", textAlign:"left", fontSize: 11, textTransform:"uppercase", letterSpacing:".08em", background:"var(--bg-soft)" }}>
+                <th style={{ padding:"12px 18px" }}>Course</th>
+                <th>Owner</th>
+                <th>Students</th>
+                <th>Modules</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {courses.map((c, i) => (
+                <tr key={c.id} style={{ borderTop: i ? "1px solid var(--hairline)" : undefined }}>
+                  <td style={{ padding:"14px 18px" }}>
+                    <div style={{ fontWeight: 700 }}>{c.title}</div>
+                    <div style={{ fontSize: 11, color:"var(--ink-3)" }}>{c.slug}</div>
+                  </td>
+                  <td style={{ color:"var(--ink-3)" }}>{c.owner.name}</td>
+                  <td>{c._count.enrolments}</td>
+                  <td>{c._count.modules}</td>
+                  <td>
+                    <span className="chip" style={c.isPublished
+                      ? { background:"color-mix(in oklch, var(--brand-500) 14%, transparent)", color:"var(--brand-800)", borderColor:"transparent" }
+                      : { background:"color-mix(in oklch, var(--ink-3) 14%, transparent)", color:"var(--ink-3)", borderColor:"transparent" }
+                    }>{c.isPublished ? "Published" : "Draft"}</span>
+                  </td>
+                  <td>
+                    <div style={{ display:"flex", gap: 4, justifyContent:"flex-end", paddingRight: 18 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => router.push(`/courses/${c.id}`)}>Open</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => togglePublish(c)}>
+                        {c.isPublished ? "Unpublish" : "Publish"}
+                      </button>
+                      <button className="btn btn-ghost btn-sm" style={{ color:"var(--danger, #e53e3e)" }} onClick={() => deleteCourse(c.id)}>
+                        <Icon name="trash" size={13}/>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
