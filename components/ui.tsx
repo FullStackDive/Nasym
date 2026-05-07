@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import NotificationBell from "./notification-bell";
 
 /* ===== Icon set ===== */
@@ -121,16 +122,35 @@ interface AppBarProps {
   userName?: string;
 }
 
+const STUDENT_ROUTES: Record<string, string> = {
+  home: "/",
+  dashboard: "/dashboard",
+  classes: "/classes",
+  lessons: "/lessons",
+  news: "/news",
+};
+
 export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, userName }: AppBarProps) => {
+  const router = useRouter();
   const items: [string, string][] = role === "ADMIN"
     ? [["overview", "Overview"], ["users", "Users"], ["content", "Content"], ["analytics", "Analytics"], ["reports", "Reports"]]
     : [["home", "Home"], ["dashboard", "Dashboard"], ["classes", "Classes"], ["lessons", "Lessons"], ["news", "News"]];
+
+  const handleNav = (k: string) => {
+    if (role === "STUDENT" && STUDENT_ROUTES[k]) {
+      router.push(STUDENT_ROUTES[k]);
+    }
+    onNav?.(k);
+  };
+
   return (
     <div className="appbar">
-      <Logo />
+      <span style={{ cursor: "pointer" }} onClick={() => router.push(role === "ADMIN" ? "/admin" : "/")}>
+        <Logo />
+      </span>
       <nav style={{ marginLeft: 12 }}>
         {items.map(([k, label]) => (
-          <a key={k} className={active === k ? "active" : ""} onClick={() => onNav?.(k)}>{label}</a>
+          <a key={k} className={active === k ? "active" : ""} style={{ cursor: "pointer" }} onClick={() => handleNav(k)}>{label}</a>
         ))}
       </nav>
       <div style={{ flex: 1 }} />
@@ -144,7 +164,9 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
         </div>
       )}
       <NotificationBell />
-      <Avatar name={userName ?? (role === "ADMIN" ? "Imam Yusuf" : "Aisha Khan")} size={36} />
+      <span style={{ cursor: "pointer" }} onClick={() => router.push("/profile")}>
+        <Avatar name={userName ?? (role === "ADMIN" ? "Imam Yusuf" : "Aisha Khan")} size={36} />
+      </span>
     </div>
   );
 };

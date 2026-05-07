@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon, LogoMark, AppBar } from "./ui";
 import { Breeze, KhatamPattern, LeafSprig } from "./motifs";
 
@@ -28,6 +29,7 @@ const dailyPosts = [
 
 export default function HomeClient() {
   const [tab, setTab] = useState("home");
+  const router = useRouter();
 
   return (
     <div className="app">
@@ -55,8 +57,8 @@ export default function HomeClient() {
                 Live classrooms, recorded lessons, and daily reflections — taught with care, designed for the way you learn now.
               </p>
               <div style={{ marginTop: 36, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <button className="btn btn-primary btn-lg">Begin your journey <Icon name="arrow-right" size={16} /></button>
-                <button className="btn btn-secondary btn-lg"><Icon name="play" size={14} /> Watch a lesson</button>
+                <button className="btn btn-primary btn-lg" onClick={() => router.push("/auth/register")}>Begin your journey <Icon name="arrow-right" size={16} /></button>
+                <button className="btn btn-secondary btn-lg" onClick={() => router.push("/lessons")}><Icon name="play" size={14} /> Watch a lesson</button>
               </div>
               <div style={{ marginTop: 44, display: "flex", gap: 40, color: "var(--ink-3)", fontSize: 12, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>
                 <div><div className="serif" style={{ fontSize: 32, color: "var(--brand-800)", fontWeight: 500, letterSpacing: "-0.02em", textTransform: "none" }}>4,820</div>active students</div>
@@ -80,7 +82,7 @@ export default function HomeClient() {
                   <hr className="divider" style={{ margin: "24px 0" }} />
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 12, color: "var(--ink-3)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>{ayah.ref}</span>
-                    <button className="btn btn-mint btn-sm">Listen <Icon name="play" size={12} /></button>
+                    <button className="btn btn-mint btn-sm" onClick={() => router.push("/reminders")}>Listen <Icon name="play" size={12} /></button>
                   </div>
                 </div>
               </div>
@@ -95,7 +97,7 @@ export default function HomeClient() {
               <div className="eyebrow">Live this week</div>
               <h2 className="serif" style={{ fontSize: 44, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 0" }}>Upcoming classes</h2>
             </div>
-            <a style={{ color: "var(--brand-700)", fontSize: 14, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>See all <Icon name="arrow-right" size={12} /></a>
+            <a onClick={() => router.push("/classes")} style={{ color: "var(--brand-700)", fontSize: 14, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}>See all <Icon name="arrow-right" size={12} /></a>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
             {upcoming.map((c, i) => (
@@ -111,7 +113,7 @@ export default function HomeClient() {
                   <p style={{ margin: "6px 0 18px", color: "var(--ink-3)", fontSize: 13 }}>{c.teacher}</p>
                   <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 12, color: "var(--ink-3)", display: "inline-flex", alignItems: "center", gap: 4 }}><Icon name="users" size={12} /> {c.students} enrolled</span>
-                    <button className={c.live ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}>{c.live ? "Join now" : "Reserve"}</button>
+                    <button onClick={() => router.push("/classes")} className={c.live ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}>{c.live ? "Join now" : "Reserve"}</button>
                   </div>
                 </div>
               </div>
@@ -127,7 +129,7 @@ export default function HomeClient() {
               <h2 className="serif" style={{ fontSize: 36, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 22px" }}>Today&apos;s reflections</h2>
               <div className="card" style={{ overflow: "hidden" }}>
                 {dailyPosts.map((p, i) => (
-                  <div key={i} style={{ padding: "22px 24px", borderTop: i ? "1px solid var(--hairline)" : "none", display: "flex", gap: 20, alignItems: "center" }}>
+                  <div key={i} onClick={() => router.push("/blog")} style={{ padding: "22px 24px", borderTop: i ? "1px solid var(--hairline)" : "none", display: "flex", gap: 20, alignItems: "center", cursor: "pointer" }}>
                     <div style={{ width: 78, height: 78, borderRadius: 14, background: i === 0 ? "var(--mint-bg)" : i === 1 ? "var(--accent-50)" : "var(--brand-50)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: i === 0 ? "var(--brand-700)" : i === 1 ? "var(--accent-600)" : "var(--brand-800)" }}>
                       <Icon name={i === 0 ? "leaf" : i === 1 ? "book" : "chat"} size={26} stroke={1.4} />
                     </div>
@@ -151,7 +153,7 @@ export default function HomeClient() {
                   <span className="chip" style={{ background: "rgba(255,255,255,0.16)", color: "white", borderColor: "rgba(255,255,255,0.25)" }}>📌 Pinned</span>
                   <h3 className="serif" style={{ margin: "14px 0 8px", fontSize: 22, fontWeight: 500, letterSpacing: "-0.01em" }}>Ramadan 1447 schedule</h3>
                   <p style={{ margin: 0, fontSize: 14, color: "rgba(255,255,255,0.82)", lineHeight: 1.6 }}>Nightly tafsīr, qiyām duʿāʾ sessions, and a youth I&apos;tikāf programme. Reservations open Monday.</p>
-                  <button className="btn btn-mint btn-sm" style={{ marginTop: 18 }}>Read full notice <Icon name="arrow-right" size={12} /></button>
+                  <button onClick={() => router.push("/news")} className="btn btn-mint btn-sm" style={{ marginTop: 18 }}>Read full notice <Icon name="arrow-right" size={12} /></button>
                 </div>
               </div>
               <div className="card card-pad" style={{ marginTop: 14 }}>
@@ -180,8 +182,8 @@ export default function HomeClient() {
               <p style={{ marginTop: 16, color: "rgba(255,255,255,0.65)", fontSize: 13, maxWidth: 480 }}>An open Islamic learning space. Free for students. Built with sincerity.</p>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
-              <button className="btn" style={{ background: "transparent", color: "var(--surface)", borderColor: "rgba(255,255,255,0.3)" }}>Sign in</button>
-              <button className="btn btn-mint">Create account</button>
+              <button onClick={() => router.push("/auth/signin")} className="btn" style={{ background: "transparent", color: "var(--surface)", borderColor: "rgba(255,255,255,0.3)" }}>Sign in</button>
+              <button onClick={() => router.push("/auth/register")} className="btn btn-mint">Create account</button>
             </div>
           </div>
         </section>

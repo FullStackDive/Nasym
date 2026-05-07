@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon, Avatar, AppBar, Stat } from "./ui";
 import { Breeze, KhatamPattern, LeafSprig } from "./motifs";
 
@@ -24,6 +25,7 @@ const hueBg = (h: string) => h === "deep" ? "linear-gradient(135deg, var(--brand
   : "linear-gradient(135deg, var(--accent-500), var(--accent-600))";
 
 const DashboardClient = () => {
+  const router = useRouter();
   const [tab, setTab] = useState("dashboard");
   const [habits, setHabits] = useState(reminders);
   const done = habits.filter(h => h.done).length;
@@ -40,8 +42,8 @@ const DashboardClient = () => {
               <p style={{ color: "var(--ink-3)", marginTop: 8, fontSize: 15 }}>Your next live class starts in <b style={{ color:"var(--brand-700)" }}>2 hours 14 minutes</b>.</p>
             </div>
             <div style={{ display:"flex", gap: 10 }}>
-              <button className="btn btn-secondary"><Icon name="calendar" size={14}/> My schedule</button>
-              <button className="btn btn-primary"><Icon name="video" size={14}/> Join class</button>
+              <button className="btn btn-secondary" onClick={() => router.push("/classes")}><Icon name="calendar" size={14}/> My schedule</button>
+              <button className="btn btn-primary" onClick={() => router.push("/classes")}><Icon name="video" size={14}/> Join class</button>
             </div>
           </div>
 
@@ -59,7 +61,7 @@ const DashboardClient = () => {
               <div className="surface" style={{ padding: 26 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom: 18 }}>
                   <h2 className="serif" style={{ margin: 0, fontSize: 26, fontWeight: 500, letterSpacing:"-0.01em" }}>Continue learning</h2>
-                  <a style={{ color:"var(--brand-700)", fontSize: 13, fontWeight: 600, cursor:"pointer" }}>All my classes →</a>
+                  <a onClick={() => router.push("/courses")} style={{ color:"var(--brand-700)", fontSize: 13, fontWeight: 600, cursor:"pointer" }}>All my classes →</a>
                 </div>
                 {myClasses.map((c, i) => (
                   <div key={c.id} style={{ display:"flex", gap: 18, alignItems:"center", padding: "16px 0", borderTop: i ? "1px solid var(--hairline)" : "none" }}>
@@ -76,7 +78,7 @@ const DashboardClient = () => {
                       <div className="progress" style={{ maxWidth: 360 }}><i style={{ width: `${c.progress}%` }} /></div>
                     </div>
                     <span className="serif" style={{ fontSize: 22, fontWeight: 500, color:"var(--brand-700)" }}>{c.progress}%</span>
-                    <button className={c.live ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}>{c.live ? "Join" : "Resume"}</button>
+                    <button onClick={() => router.push("/courses")} className={c.live ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm"}>{c.live ? "Join" : "Resume"}</button>
                   </div>
                 ))}
               </div>
@@ -93,7 +95,7 @@ const DashboardClient = () => {
                     <p className="serif" style={{ margin: 0, fontSize: 17, color:"var(--ink-2)", lineHeight: 1.55, fontWeight: 400 }}>
                       In Sūrah al-Baqarah, ṣabr is paired with prayer — two active forms of seeking help. Today, when something tests you, slow down for two seconds and breathe. That pause <i>is</i> ṣabr.
                     </p>
-                    <button className="btn btn-ghost btn-sm" style={{ marginTop: 14, padding: 0, color:"var(--brand-700)" }}>Continue reading <Icon name="arrow-right" size={12}/></button>
+                    <button onClick={() => router.push("/blog")} className="btn btn-ghost btn-sm" style={{ marginTop: 14, padding: 0, color:"var(--brand-700)" }}>Continue reading <Icon name="arrow-right" size={12}/></button>
                   </div>
                 </div>
               </div>
