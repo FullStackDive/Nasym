@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/lib/notify";
 
 type Params = { id: string };
 
@@ -32,6 +33,13 @@ export async function POST(req: Request, { params }: { params: Promise<Params> }
 
   // Mark as answered
   await prisma.question.update({ where: { id }, data: { status: "ANSWERED" } });
+
+  // Email questioner with the reply
+  sendEmail({
+    to: question.email,
+    subject: `[Nasym] Re: ${question.subject}`,
+    text: `Dear ${question.name},\n\nThank you for your question. Here is our response:\n\n${parsed.data.body}\n\nWa salām,\nThe Nasym-ur-Rahmah team`,
+  }).catch(err => console.error("ask reply email failed", err));
 
   return NextResponse.json({ reply }, { status: 201 });
 }

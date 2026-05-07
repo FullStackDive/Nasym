@@ -116,6 +116,7 @@ model User {
   authoredBlog       BlogPost[]             @relation("BlogAuthor")
   invitationsSent    Invitation[]           @relation("InvitationCreatedBy")
   questionReplies    QuestionReply[]        @relation("ReplyAuthor")
+  notifications      Notification[]
 }
 
 model Permission {
@@ -554,4 +555,23 @@ model HabitLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+}
+
+// =====================================================================
+// Notifications — in-app inbox per user
+// =====================================================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // ASSIGNMENT_GRADED, ANNOUNCEMENT, REPLY, LIVE_STARTED, BLOG_PUBLISHED, etc.
+  title     String
+  body      String
+  href      String?  // optional deep link
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import NotificationBell from "./notification-bell";
 
 /* ===== Icon set ===== */
 type IconName =
@@ -142,7 +143,7 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
           </span>
         </div>
       )}
-      <button className="btn btn-ghost" style={{ padding: 8 }} title="Notifications"><Icon name="bell" size={18} /></button>
+      <NotificationBell />
       <Avatar name={userName ?? (role === "ADMIN" ? "Imam Yusuf" : "Aisha Khan")} size={36} />
     </div>
   );

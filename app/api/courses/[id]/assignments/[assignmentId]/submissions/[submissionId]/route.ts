@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isCourseTeacher } from "@/lib/access";
+import { notify } from "@/lib/notify";
 
 const gradeSchema = z.object({
   score: z.number().int().min(0),
@@ -62,6 +63,19 @@ export async function PATCH(
     include: {
       student: { select: { id: true, name: true, email: true } },
       gradedBy: { select: { id: true, name: true } },
+    },
+  });
+
+  await notify({
+    userId: updated.student.id,
+    type: "ASSIGNMENT_GRADED",
+    title: `Assignment graded: ${assignment.title}`,
+    body: `You scored ${updated.score}/${assignment.maxPoints}.${parsed.data.feedback ? " Feedback provided." : ""}`,
+    href: `/courses/${courseId}/assignments/${assignmentId}`,
+    email: {
+      to: updated.student.email,
+      subject: `[Nasym] Assignment graded: ${assignment.title}`,
+      text: `Hello ${updated.student.name},\n\nYour assignment "${assignment.title}" has been graded. You scored ${updated.score}/${assignment.maxPoints}.\n\n${parsed.data.feedback ?? ""}`,
     },
   });
 

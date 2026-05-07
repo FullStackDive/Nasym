@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isCourseTeacher } from "@/lib/access";
+import { notifyMany } from "@/lib/notify";
 
 const createSchema = z.object({
   body: z.string().min(1).max(5000),
@@ -73,6 +74,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     },
     include: { author: { select: { id: true, name: true } } },
   });
+
+  // Notify all enrolled students
+  const enrolments = await prisma.courseEnrolment.findMany({
+    where: { courseId, status: "ACTIVE" },
+    select: { userId: true },
+  });
+  const studentIds = enrolments.map(e => e.userId).filter(uid => uid !== session.user.id);
+  if (studentIds.length > 0) {
+    await notifyMany(studentIds, {
+      type: "ANNOUNCEMENT",
+      title: `New announcement: ${course.title}`,
+      body: parsed.data.body.slice(0, 200),
+      href: `/courses/${courseId}?tab=announcements`,
+    });
+  }
 
   return NextResponse.json({ announcement }, { status: 201 });
 }
