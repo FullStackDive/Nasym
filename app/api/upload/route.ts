@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { put } from "@vercel/blob";
+import path from "path";
+import fs from "fs";
 import { getSession } from "@/lib/server-session";
 import { userHasPermission } from "@/lib/permissions";
-import fs from "fs";
-import path from "path";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_SIZE = 5 * 1024 * 1024;
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -29,11 +30,21 @@ export async function POST(req: Request) {
   }
 
   const ext = path.extname(file.name).toLowerCase() || ".jpg";
-  const filename = `${crypto.randomUUID()}${ext}`;
+  const filename = `posters/${crypto.randomUUID()}${ext}`;
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(filename, file, {
+      access: "public",
+      contentType: file.type,
+      addRandomSuffix: false,
+    });
+    return NextResponse.json({ url: blob.url });
+  }
+
+  // Fallback: local disk (dev only). Vercel/serverless has read-only fs.
   const uploadDir = path.join(process.cwd(), "public", "uploads");
-
   fs.mkdirSync(uploadDir, { recursive: true });
-  fs.writeFileSync(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
-
-  return NextResponse.json({ url: `/uploads/${filename}` });
+  const localName = path.basename(filename);
+  fs.writeFileSync(path.join(uploadDir, localName), Buffer.from(await file.arrayBuffer()));
+  return NextResponse.json({ url: `/uploads/${localName}` });
 }

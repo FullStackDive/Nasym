@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { put } from "@vercel/blob";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isCourseTeacher, isCourseEnrolled } from "@/lib/access";
 
-const MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
+// Vercel free serverless has ~4.5MB body limit; cap multipart uploads.
+// For larger videos, use an external URL (YouTube/Vimeo unlisted).
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
 const VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/ogg", "video/quicktime", "video/x-matroska"]);
 
 async function canEdit(userId: string, role: string, courseId: string) {
@@ -68,12 +71,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (file.size > MAX_VIDEO_BYTES) return NextResponse.json({ error: "File too large (max 2 GB)" }, { status: 413 });
 
     const ext = path.extname(file.name) || ".mp4";
-    const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-    const privateDir = path.join(process.cwd(), "private", "recordings");
-    await mkdir(privateDir, { recursive: true });
-    await writeFile(path.join(privateDir, safeName), Buffer.from(await file.arrayBuffer()));
-    // videoUrl is a private identifier, not a public URL
-    videoUrl = `private:recordings/${safeName}`;
+    const safeName = `recordings/${courseId}/${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const blob = await put(safeName, file, {
+        access: "public",
+        contentType: file.type,
+        addRandomSuffix: false,
+      });
+      videoUrl = blob.url;
+    } else {
+      const privateDir = path.join(process.cwd(), "private", "recordings");
+      await mkdir(privateDir, { recursive: true });
+      const localName = path.basename(safeName);
+      await writeFile(path.join(privateDir, localName), Buffer.from(await file.arrayBuffer()));
+      videoUrl = `private:recordings/${localName}`;
+    }
   } else {
     // JSON body with external URL (e.g. YouTube embed, Vimeo)
     const body = await req.json().catch(() => null);
