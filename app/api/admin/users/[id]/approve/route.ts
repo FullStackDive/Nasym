@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/access";
 import { sendEmail } from "@/lib/email";
+import { logAudit } from "@/lib/audit";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireRole("ADMIN");
   if (auth instanceof NextResponse) return auth;
 
@@ -33,6 +34,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       <p><a href="${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/auth/signin">Sign in</a></p>
     `,
   });
+
+  await logAudit({
+    actorId: auth.user.id,
+    action: "user.approve",
+    targetType: "User",
+    targetId: updated.id,
+    metadata: { email: updated.email, role: updated.role },
+  }, req);
 
   return NextResponse.json({ user: updated });
 }

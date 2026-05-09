@@ -7,6 +7,7 @@ import {
   INVITATION_EXPIRY_DAYS,
   sendInvitationEmail,
 } from "@/lib/invitations";
+import { logAudit } from "@/lib/audit";
 
 const createSchema = z.object({
   email: z.string().email(),
@@ -83,6 +84,14 @@ export async function POST(req: Request) {
     token: invitation.token,
     expiresAt: invitation.expiresAt,
   });
+
+  await logAudit({
+    actorId: auth.user.id,
+    action: "invitation.create",
+    targetType: "Invitation",
+    targetId: invitation.id,
+    metadata: { email: invitation.email, role: invitation.role, courseId: invitation.courseId, expiresAt: invitation.expiresAt.toISOString() },
+  }, req);
 
   return NextResponse.json({ invitation }, { status: 201 });
 }

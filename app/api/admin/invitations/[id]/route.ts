@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/access";
+import { logAudit } from "@/lib/audit";
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireRole("ADMIN");
   if (auth instanceof NextResponse) return auth;
 
@@ -17,6 +18,14 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     where: { id },
     data: { status: "REVOKED" },
   });
+
+  await logAudit({
+    actorId: auth.user.id,
+    action: "invitation.revoke",
+    targetType: "Invitation",
+    targetId: id,
+    metadata: { email: inv.email, role: inv.role },
+  }, req);
 
   return NextResponse.json({ ok: true });
 }

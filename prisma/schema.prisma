@@ -118,6 +118,8 @@ model User {
   invitationsSent    Invitation[]           @relation("InvitationCreatedBy")
   questionReplies    QuestionReply[]        @relation("ReplyAuthor")
   notifications      Notification[]
+  passwordResets     PasswordResetToken[]
+  auditEvents        AuditLog[]             @relation("AuditActor")
 }
 
 model Permission {
@@ -556,6 +558,44 @@ model HabitLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
+}
+
+// =====================================================================
+// Password reset tokens
+// =====================================================================
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// =====================================================================
+// Audit log — admin/sensitive action trail
+// =====================================================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
 }
 
 // =====================================================================

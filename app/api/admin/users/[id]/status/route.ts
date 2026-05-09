@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireActiveUser } from "@/lib/server-session";
 import { userHasPermission } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
 const schema = z.object({
@@ -38,6 +39,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     },
     select: { id: true, email: true, name: true, role: true, status: true, statusReason: true, suspendedUntil: true }
   });
+
+  await logAudit({
+    actorId: session.user.id,
+    action: `user.status.${parsed.data.status.toLowerCase()}`,
+    targetType: "User",
+    targetId: updated.id,
+    metadata: {
+      status: updated.status,
+      reason: parsed.data.reason ?? null,
+      suspendedUntil: until?.toISOString() ?? null,
+    },
+  }, req);
 
   return NextResponse.json({ user: updated });
 }

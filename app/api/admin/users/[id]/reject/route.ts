@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/access";
+import { logAudit } from "@/lib/audit";
 
 const rejectSchema = z.object({
   reason: z.string().max(500).optional(),
@@ -32,6 +33,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     },
     select: { id: true, status: true, statusReason: true },
   });
+
+  await logAudit({
+    actorId: auth.user.id,
+    action: "user.reject",
+    targetType: "User",
+    targetId: updated.id,
+    metadata: { reason: parsed.data.reason ?? null },
+  }, req);
 
   return NextResponse.json({ user: updated });
 }
