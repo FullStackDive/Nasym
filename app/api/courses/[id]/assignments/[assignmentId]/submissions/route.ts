@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { put } from "@vercel/blob";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isCourseTeacher, isCourseEnrolled } from "@/lib/access";
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_FILE_BYTES = 4 * 1024 * 1024; // Vercel function body limit
 
 type Params = { id: string; assignmentId: string };
 
@@ -97,13 +98,24 @@ export async function POST(
     text = (formData.get("text") as string | null) || null;
 
     if (file) {
-      if (file.size > MAX_FILE_BYTES) return NextResponse.json({ error: "File too large (max 50 MB)" }, { status: 413 });
+      if (file.size > MAX_FILE_BYTES) return NextResponse.json({ error: "File too large (max 4 MB on free tier)" }, { status: 413 });
       const ext = path.extname(file.name) || "";
-      const safeName = `sub-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-      const uploadsDir = path.join(process.cwd(), "public", "uploads");
-      await mkdir(uploadsDir, { recursive: true });
-      await writeFile(path.join(uploadsDir, safeName), Buffer.from(await file.arrayBuffer()));
-      fileUrl = `/uploads/${safeName}`;
+      const safeName = `submissions/${assignmentId}/${userId}-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        const blob = await put(safeName, file, {
+          access: "public",
+          contentType: file.type || "application/octet-stream",
+          addRandomSuffix: false,
+        });
+        fileUrl = blob.url;
+      } else {
+        const uploadsDir = path.join(process.cwd(), "public", "uploads");
+        await mkdir(uploadsDir, { recursive: true });
+        const localName = path.basename(safeName);
+        await writeFile(path.join(uploadsDir, localName), Buffer.from(await file.arrayBuffer()));
+        fileUrl = `/uploads/${localName}`;
+      }
     }
   } else {
     const body = await req.json().catch(() => ({}));

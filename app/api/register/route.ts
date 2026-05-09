@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { sendEmail } from "@/lib/email";
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 /**
  * Public registration endpoint.
@@ -17,6 +18,9 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
+  const rl = rateLimit(clientKey(req, "register"), { limit: 5, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

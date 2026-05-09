@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const acceptSchema = z.object({
   name: z.string().min(2).max(60),
@@ -9,6 +10,9 @@ const acceptSchema = z.object({
 });
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
+  const rl = rateLimit(clientKey(req, "invite-accept"), { limit: 10, windowMs: 10 * 60 * 1000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
   const { token } = await params;
   const body = await req.json().catch(() => null);
   const parsed = acceptSchema.safeParse(body);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { unlink } from "fs/promises";
 import path from "path";
+import { del } from "@vercel/blob";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -31,10 +32,12 @@ export async function DELETE(
   });
   if (!material) return NextResponse.json({ error: "Material not found" }, { status: 404 });
 
-  // Remove physical file if it was stored locally
+  // Remove physical file: local disk OR Vercel Blob
   if (material.fileUrl.startsWith("/uploads/")) {
     const filePath = path.join(process.cwd(), "public", material.fileUrl);
     await unlink(filePath).catch(() => null);
+  } else if (material.fileUrl.includes(".public.blob.vercel-storage.com")) {
+    await del(material.fileUrl).catch(() => null);
   }
 
   await prisma.courseMaterial.delete({ where: { id: materialId } });

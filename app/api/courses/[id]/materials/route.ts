@@ -1,12 +1,29 @@
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { put } from "@vercel/blob";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isCourseTeacher } from "@/lib/access";
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50 MB
+// Vercel function body limit ~4.5 MB. Cap accordingly; for bigger files,
+// teachers should host externally and use a URL-based material flow (TODO).
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
+const ALLOWED_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain",
+  "text/markdown",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 async function canEdit(userId: string, role: string, courseId: string) {
   if (role === "ADMIN") return true;
@@ -73,17 +90,37 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!file || !title) {
     return NextResponse.json({ error: "file and title are required" }, { status: 400 });
   }
+  if (title.length > 200) {
+    return NextResponse.json({ error: "Title too long (max 200 chars)" }, { status: 400 });
+  }
+  if (description && description.length > 2000) {
+    return NextResponse.json({ error: "Description too long (max 2000 chars)" }, { status: 400 });
+  }
   if (file.size > MAX_FILE_BYTES) {
-    return NextResponse.json({ error: "File too large (max 50 MB)" }, { status: 413 });
+    return NextResponse.json({ error: "File too large (max 4 MB on free tier)" }, { status: 413 });
+  }
+  if (!ALLOWED_TYPES.has(file.type)) {
+    return NextResponse.json({ error: `Unsupported file type: ${file.type}` }, { status: 415 });
   }
 
   const ext = path.extname(file.name) || "";
-  const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadsDir, { recursive: true });
-  await writeFile(path.join(uploadsDir, safeName), Buffer.from(await file.arrayBuffer()));
+  const safeName = `materials/${courseId}/${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
 
-  const fileUrl = `/uploads/${safeName}`;
+  let fileUrl: string;
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(safeName, file, {
+      access: "public",
+      contentType: file.type,
+      addRandomSuffix: false,
+    });
+    fileUrl = blob.url;
+  } else {
+    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    await mkdir(uploadsDir, { recursive: true });
+    const localName = path.basename(safeName);
+    await writeFile(path.join(uploadsDir, localName), Buffer.from(await file.arrayBuffer()));
+    fileUrl = `/uploads/${localName}`;
+  }
 
   const material = await prisma.courseMaterial.create({
     data: {

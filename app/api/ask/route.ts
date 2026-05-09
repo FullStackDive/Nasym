@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { QuestionStatus } from "@prisma/client";
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const submitSchema = z.object({
   name: z.string().min(1).max(100),
@@ -14,6 +15,9 @@ const submitSchema = z.object({
 
 // POST /api/ask — public question submission (no auth required)
 export async function POST(req: Request) {
+  const rl = rateLimit(clientKey(req, "ask"), { limit: 3, windowMs: 10 * 60 * 1000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfter);
+
   const body = await req.json().catch(() => null);
   const parsed = submitSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
