@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function ResetPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading…</div>}>
+      <ResetForm />
+    </Suspense>
+  );
+}
+
+function ResetForm() {
   const search = useSearchParams();
   const token = search.get("token") ?? "";
   const [password, setPassword] = useState("");
