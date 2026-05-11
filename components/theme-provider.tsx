@@ -14,10 +14,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = localStorage.getItem("theme") as Theme | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const resolved = stored ?? (prefersDark ? "dark" : "light");
+    const resolved = stored ?? "light";
     setTheme(resolved);
     document.documentElement.classList.toggle("dark", resolved === "dark");
+    document.documentElement.dataset.theme = resolved === "dark" ? "dark" : "coastal";
   }, []);
 
   const toggle = () => {
@@ -25,6 +25,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const next = t === "dark" ? "light" : "dark";
       localStorage.setItem("theme", next);
       document.documentElement.classList.toggle("dark", next === "dark");
+      document.documentElement.dataset.theme = next === "dark" ? "dark" : "coastal";
       return next;
     });
   };

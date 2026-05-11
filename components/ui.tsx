@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import NotificationBell from "./notification-bell";
 
 /* ===== Icon set ===== */
@@ -132,6 +133,10 @@ const STUDENT_ROUTES: Record<string, string> = {
 
 export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, userName }: AppBarProps) => {
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const sessionName = (session?.user?.name ?? "").trim();
+  const displayName = userName ?? (sessionName || null);
+  const authed = status === "authenticated";
   const items: [string, string][] = role === "ADMIN"
     ? [["overview", "Overview"], ["users", "Users"], ["content", "Content"], ["analytics", "Analytics"], ["reports", "Reports"]]
     : [["home", "Home"], ["dashboard", "Dashboard"], ["classes", "Classes"], ["lessons", "Lessons"], ["news", "News"]];
@@ -164,9 +169,24 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
         </div>
       )}
       <NotificationBell />
-      <span style={{ cursor: "pointer" }} onClick={() => router.push("/profile")}>
-        <Avatar name={userName ?? (role === "ADMIN" ? "Imam Yusuf" : "Aisha Khan")} size={36} />
-      </span>
+      {authed && displayName ? (
+        <span style={{ cursor: "pointer" }} onClick={() => router.push("/profile")} title={displayName}>
+          <Avatar name={displayName} size={36} />
+        </span>
+      ) : (
+        <span
+          style={{
+            cursor: "pointer",
+            width: 36, height: 36, borderRadius: 999,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            background: "var(--bg-soft)", border: "1px solid var(--hairline)", color: "var(--ink-3)",
+          }}
+          onClick={() => router.push("/auth/signin")}
+          title="Sign in"
+        >
+          <Icon name="user" size={18} />
+        </span>
+      )}
     </div>
   );
 };

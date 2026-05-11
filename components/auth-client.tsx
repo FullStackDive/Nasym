@@ -82,11 +82,11 @@ const AuthClient = ({ mode: initialMode = "signin" }: { mode?: Mode }) => {
 
   return (
     <div className="app" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", overflow: "hidden" }}>
-      {/* Left — brand panel */}
-      <div style={{ position: "relative", background: "linear-gradient(165deg, var(--brand-700) 0%, var(--brand-900) 100%)", color: "white", padding: 56, display: "flex", flexDirection: "column", justifyContent: "space-between", overflow: "hidden" }}>
-        <Breeze opacity={0.3} color="var(--mint-300)" />
-        <div style={{ position: "absolute", top: 60, right: 60, opacity: 0.4 }}><LeafSprig size={56} color="var(--mint-300)" /></div>
-        <div style={{ position: "absolute", bottom: 90, left: 80, opacity: 0.3 }}><LeafSprig size={36} color="var(--mint-300)" /></div>
+      {/* Left — brand panel (fixed dark teal, theme-independent) */}
+      <div style={{ position: "relative", background: "linear-gradient(165deg, #285260 0%, #142B33 100%)", color: "white", padding: 56, display: "flex", flexDirection: "column", justifyContent: "space-between", overflow: "hidden" }}>
+        <Breeze opacity={0.3} color="#B4D7D8" />
+        <div style={{ position: "absolute", top: 60, right: 60, opacity: 0.4 }}><LeafSprig size={56} color="#B4D7D8" /></div>
+        <div style={{ position: "absolute", bottom: 90, left: 80, opacity: 0.3 }}><LeafSprig size={36} color="#B4D7D8" /></div>
         <div style={{ position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ width: 44, height: 44, borderRadius: 12, background: "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}><LogoMark size={36} /></span>
@@ -94,7 +94,7 @@ const AuthClient = ({ mode: initialMode = "signin" }: { mode?: Mode }) => {
           </div>
         </div>
         <div style={{ position: "relative" }}>
-          <p className="arabic" dir="rtl" style={{ fontSize: 38, lineHeight: 1.5, margin: 0, fontWeight: 700, color: "var(--mint-300)" }}>وَمَا أَرْسَلْنَاكَ إِلَّا رَحْمَةً لِّلْعَالَمِينَ</p>
+          <p className="arabic" dir="rtl" style={{ fontSize: 38, lineHeight: 1.5, margin: 0, fontWeight: 700, color: "#B4D7D8" }}>وَمَا أَرْسَلْنَاكَ إِلَّا رَحْمَةً لِّلْعَالَمِينَ</p>
           <p className="serif" style={{ marginTop: 18, fontSize: 22, fontWeight: 500, color: "white", letterSpacing: "-0.01em", lineHeight: 1.4 }}>
             &ldquo;And We have not sent you except as a mercy to the worlds.&rdquo;
           </p>
