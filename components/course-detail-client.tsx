@@ -47,6 +47,11 @@ type Course = {
   description: string;
   coverUrl: string | null;
   isPublished: boolean;
+  isOpenForEnrolment?: boolean;
+  isArchived?: boolean;
+  enrolmentFormUrl?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
   owner: { id: string; name: string; email: string };
   teachers: { id: string; isLead: boolean; user: { id: string; name: string; email: string } }[];
   modules: CourseModule[];
@@ -469,9 +474,11 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
           }
           <div style={{ position:"absolute", inset:0, background:"linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.55))" }} />
           <div style={{ position:"absolute", bottom: 24, left: 36, right: 36, color:"white" }}>
-            {!course.isPublished && (
-              <span className="chip" style={{ background:"rgba(255,255,255,0.15)", color:"white", borderColor:"transparent", marginBottom: 8, display:"inline-block" }}>Draft</span>
-            )}
+            <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+              {!course.isPublished && <span className="chip" style={{ background:"rgba(255,255,255,0.15)", color:"white", borderColor:"transparent" }}>Draft</span>}
+              {course.isOpenForEnrolment && <span className="chip" style={{ background:"rgba(124,193,121,0.85)", color:"white", borderColor:"transparent" }}>Open for enrolment</span>}
+              {course.isArchived && <span className="chip" style={{ background:"rgba(0,0,0,0.4)", color:"white", borderColor:"transparent" }}>Past batch</span>}
+            </div>
             <h1 style={{ fontSize: 32, fontWeight: 800, margin: 0, textShadow:"0 2px 8px rgba(0,0,0,0.4)" }}>{course.title}</h1>
             <div style={{ fontSize: 14, opacity: 0.85, marginTop: 4 }}>by {course.owner.name}</div>
           </div>
@@ -534,6 +541,10 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
                     </div>
                   ))}
                 </div>
+
+                {canEdit && (
+                  <EnrolmentSettings course={course} onSaved={(updated) => setCourse({ ...course, ...updated })} />
+                )}
               </div>
             </div>
           )}
@@ -1179,6 +1190,69 @@ const RecordingCard = ({
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+};
+
+const EnrolmentSettings = ({ course, onSaved }: { course: Course; onSaved: (c: Partial<Course>) => void }) => {
+  const [open, setOpen] = useState(!!course.isOpenForEnrolment);
+  const [archived, setArchived] = useState(!!course.isArchived);
+  const [formUrl, setFormUrl] = useState(course.enrolmentFormUrl ?? "");
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setSavedMsg(null);
+    setErrorMsg(null);
+    const res = await fetch(`/api/courses/${course.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        isOpenForEnrolment: open,
+        isArchived: archived,
+        enrolmentFormUrl: formUrl.trim() || "",
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setErrorMsg(d.error ?? "Could not save");
+      return;
+    }
+    const d = await res.json();
+    setSavedMsg("Saved");
+    setTimeout(() => setSavedMsg(null), 1800);
+    onSaved({
+      isOpenForEnrolment: d.course?.isOpenForEnrolment ?? open,
+      isArchived: d.course?.isArchived ?? archived,
+      enrolmentFormUrl: d.course?.enrolmentFormUrl ?? formUrl,
+    });
+  }
+
+  return (
+    <div className="surface" style={{ padding: 20 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--ink-3)", marginBottom: 12 }}>Enrolment</div>
+      <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--hairline)", cursor: "pointer" }}>
+        <input type="checkbox" checked={open} onChange={(e) => setOpen(e.target.checked)} />
+        <span style={{ fontSize: 13, fontWeight: 600 }}>Open for enrolment</span>
+      </label>
+      <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--hairline)", cursor: "pointer" }}>
+        <input type="checkbox" checked={archived} onChange={(e) => setArchived(e.target.checked)} />
+        <span style={{ fontSize: 13, fontWeight: 600 }}>Archived (past batch)</span>
+      </label>
+      <div style={{ paddingTop: 10 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-3)" }}>Custom admissions form URL (optional)</label>
+        <input className="input" placeholder="https://forms.gle/…" value={formUrl} onChange={(e) => setFormUrl(e.target.value)} style={{ marginTop: 6, fontSize: 13 }} />
+        <p style={{ fontSize: 11, color: "var(--ink-3)", margin: "6px 0 0" }}>Leave blank to use the platform default form.</p>
+      </div>
+      <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        {errorMsg && <span style={{ fontSize: 12, color: "var(--accent-700)" }}>{errorMsg}</span>}
+        {savedMsg && <span style={{ fontSize: 12, color: "var(--brand-700)" }}>{savedMsg}</span>}
+        <span style={{ flex: 1 }} />
+        <button className="btn btn-primary btn-sm" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>
       </div>
     </div>
   );

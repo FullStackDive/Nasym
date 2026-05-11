@@ -2,14 +2,16 @@
 
 Target stack (all free tiers):
 - **Hosting:** Vercel (Next.js native)
-- **Database:** Neon Postgres (serverless, free 0.5 GB + branching)
+- **Database:** Neon **or** Supabase Postgres (free 0.5 GB / 500 MB)
 - **File storage:** Vercel Blob (free 1 GB)
 - **Email:** Resend or Brevo SMTP (free quotas)
 - **Live video:** `meet.jit.si` public Jitsi (no signup)
 
 ---
 
-## 1. Database — Neon
+## 1. Database — pick ONE
+
+### Option A — Neon (recommended)
 
 1. Sign up at https://console.neon.tech
 2. Create a project (region close to your Vercel region).
@@ -17,6 +19,15 @@ Target stack (all free tiers):
    - Copy the **pooled** connection string → `DATABASE_URL`
    - Copy the **direct/unpooled** connection string → `DATABASE_URL_UNPOOLED`
 4. Both must include `?sslmode=require`.
+
+### Option B — Supabase
+
+1. Sign up at https://supabase.com → **New project**.
+2. Set a strong DB password (save it).
+3. **Project Settings → Database → Connection string → URI** tab:
+   - **Transaction pooler** (port `6543`, host `aws-0-<region>.pooler.supabase.com`) → `DATABASE_URL`. Append `?pgbouncer=true&connection_limit=1`.
+   - **Direct connection** (port `5432`, host `db.<ref>.supabase.co`) → `DATABASE_URL_UNPOOLED`.
+4. Replace `[YOUR-PASSWORD]` in both strings with the actual password.
 
 ## 2. Vercel project
 
@@ -66,11 +77,12 @@ Default admin: `admin@example.com` / `Admin123!` — change immediately.
 
 ```bash
 cp .env.example .env
-# Fill DATABASE_URL with a Neon dev branch (or local Postgres)
-npm install
-npx prisma db push
+# Fill DATABASE_URL + DATABASE_URL_UNPOOLED from your chosen provider
+npm install --ignore-scripts
+./node_modules/.bin/prisma generate
+./node_modules/.bin/prisma db push
 npm run seed
-npm run dev
+./node_modules/.bin/next dev
 ```
 
 Without `BLOB_READ_WRITE_TOKEN`, file uploads fall back to `public/uploads/` and

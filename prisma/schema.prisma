@@ -120,6 +120,7 @@ model User {
   notifications      Notification[]
   passwordResets     PasswordResetToken[]
   auditEvents        AuditLog[]             @relation("AuditActor")
+  lessonComments     LessonComment[]
 }
 
 model Permission {
@@ -145,14 +146,19 @@ model UserPermission {
 // =====================================================================
 
 model Course {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  title       String
-  description String
-  coverUrl    String?
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  title              String
+  description        String
+  coverUrl           String?
+  isPublished        Boolean  @default(false)
+  isOpenForEnrolment Boolean  @default(false)
+  isArchived         Boolean  @default(false)
+  enrolmentFormUrl   String?
+  startsAt           DateTime?
+  endsAt             DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   ownerId String
   owner   User   @relation("CourseOwner", fields: [ownerId], references: [id])
@@ -358,6 +364,20 @@ model Lesson {
   quizzes  Quiz[]
   reports  Report[]         @relation("ReportLesson")
   progress LessonProgress[]
+  comments LessonComment[]
+}
+
+model LessonComment {
+  id        String   @id @default(cuid())
+  lessonId  String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId, createdAt])
 }
 
 model Quiz {

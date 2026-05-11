@@ -19,6 +19,11 @@ const createSchema = z.object({
   description: z.string().min(10).max(2000),
   coverUrl: z.string().url().optional().or(z.literal("")),
   isPublished: z.boolean().default(false),
+  isOpenForEnrolment: z.boolean().default(false),
+  isArchived: z.boolean().default(false),
+  enrolmentFormUrl: z.string().url().optional().or(z.literal("")),
+  startsAt: z.string().datetime().optional().nullable(),
+  endsAt: z.string().datetime().optional().nullable(),
 });
 
 // GET /api/courses — list courses visible to the current user
@@ -81,7 +86,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid input", issues: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { title, description, coverUrl, isPublished } = parsed.data;
+  const { title, description, coverUrl, isPublished, isOpenForEnrolment, isArchived, enrolmentFormUrl, startsAt, endsAt } = parsed.data;
 
   let slug = slugify(title);
   const existing = await prisma.course.findUnique({ where: { slug } });
@@ -94,6 +99,11 @@ export async function POST(req: Request) {
       description,
       coverUrl: coverUrl || null,
       isPublished,
+      isOpenForEnrolment,
+      isArchived,
+      enrolmentFormUrl: enrolmentFormUrl || null,
+      startsAt: startsAt ? new Date(startsAt) : null,
+      endsAt: endsAt ? new Date(endsAt) : null,
       ownerId: auth.user.id,
     },
     include: {

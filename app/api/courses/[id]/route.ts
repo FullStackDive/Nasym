@@ -10,6 +10,11 @@ const updateSchema = z.object({
   description: z.string().min(10).max(2000).optional(),
   coverUrl: z.string().url().optional().or(z.literal("")).optional(),
   isPublished: z.boolean().optional(),
+  isOpenForEnrolment: z.boolean().optional(),
+  isArchived: z.boolean().optional(),
+  enrolmentFormUrl: z.string().url().optional().or(z.literal("")).optional(),
+  startsAt: z.string().datetime().optional().nullable(),
+  endsAt: z.string().datetime().optional().nullable(),
 });
 
 async function canViewCourse(userId: string, role: string, courseId: string) {
@@ -75,6 +80,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       ...(parsed.data.description !== undefined && { description: parsed.data.description }),
       ...(parsed.data.coverUrl !== undefined && { coverUrl: parsed.data.coverUrl || null }),
       ...(parsed.data.isPublished !== undefined && { isPublished: parsed.data.isPublished }),
+      ...(parsed.data.isOpenForEnrolment !== undefined && { isOpenForEnrolment: parsed.data.isOpenForEnrolment }),
+      ...(parsed.data.isArchived !== undefined && { isArchived: parsed.data.isArchived }),
+      ...(parsed.data.enrolmentFormUrl !== undefined && { enrolmentFormUrl: parsed.data.enrolmentFormUrl || null }),
+      ...(parsed.data.startsAt !== undefined && { startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null }),
+      ...(parsed.data.endsAt !== undefined && { endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null }),
     },
     include: {
       owner: { select: { id: true, name: true } },
