@@ -1,37 +1,59 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark" | "system";
 
-const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
-  theme: "light",
+const ThemeContext = createContext<{ theme: Theme; setTheme: (t: Theme) => void; toggle: () => void; resolved: "light" | "dark" }>({
+  theme: "system",
+  setTheme: () => {},
   toggle: () => {},
+  resolved: "light",
 });
 
+function apply(t: Theme): "light" | "dark" {
+  const prefersDark = typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const dark = t === "dark" || (t === "system" && prefersDark);
+  document.documentElement.classList.toggle("dark", dark);
+  document.documentElement.dataset.theme = dark ? "dark" : "coastal";
+  return dark ? "dark" : "light";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>("system");
+  const [resolved, setResolved] = useState<"light" | "dark">("light");
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme") as Theme | null;
-    const resolved = stored ?? "light";
-    setTheme(resolved);
-    document.documentElement.classList.toggle("dark", resolved === "dark");
-    document.documentElement.dataset.theme = resolved === "dark" ? "dark" : "coastal";
+    const stored = (localStorage.getItem("theme") as Theme | null) ?? "system";
+    setThemeState(stored);
+    setResolved(apply(stored));
+
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      const t = (localStorage.getItem("theme") as Theme | null) ?? "system";
+      if (t === "system") setResolved(apply("system"));
+    };
+    mql.addEventListener?.("change", onChange);
+    return () => mql.removeEventListener?.("change", onChange);
   }, []);
 
-  const toggle = () => {
-    setTheme((t) => {
-      const next = t === "dark" ? "light" : "dark";
+  const setTheme = useCallback((t: Theme) => {
+    setThemeState(t);
+    localStorage.setItem("theme", t);
+    setResolved(apply(t));
+  }, []);
+
+  const toggle = useCallback(() => {
+    setThemeState((t) => {
+      const next: Theme = t === "dark" ? "light" : "dark";
       localStorage.setItem("theme", next);
-      document.documentElement.classList.toggle("dark", next === "dark");
-      document.documentElement.dataset.theme = next === "dark" ? "dark" : "coastal";
+      setResolved(apply(next));
       return next;
     });
-  };
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggle, resolved }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -121,6 +121,9 @@ model User {
   passwordResets     PasswordResetToken[]
   auditEvents        AuditLog[]             @relation("AuditActor")
   lessonComments     LessonComment[]
+
+  // User-chosen profile du'a (key into preset list). Null = default.
+  duaKey String?
 }
 
 model Permission {

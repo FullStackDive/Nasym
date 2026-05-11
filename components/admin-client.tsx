@@ -2,6 +2,7 @@
 
 import { ReactNode, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Icon, Avatar, AppBar, Stat } from "./ui";
 
 type IconName = "home" | "book" | "video" | "users" | "user" | "newspaper" | "bell" | "settings" | "search" | "play" | "pause" | "mic" | "mic-off" | "cam" | "cam-off" | "hand" | "send" | "rec" | "chat" | "poll" | "notes" | "trophy" | "flame" | "star" | "leaf" | "calendar" | "clock" | "check" | "plus" | "filter" | "more" | "shield" | "globe" | "lock" | "mail" | "moon" | "arrow-right" | "trend" | "download" | "upload" | "edit" | "trash" | "eye" | "key" | "wind";
@@ -27,7 +28,12 @@ const Sparkline = ({ data, color = "var(--brand-600)" }: { data: number[]; color
   );
 };
 
-const AdminShell = ({ active, onNav, children }: { active: string; onNav: (k: string) => void; children: ReactNode }) => (
+const AdminShell = ({ active, onNav, children }: { active: string; onNav: (k: string) => void; children: ReactNode }) => {
+  const { data: session } = useSession();
+  const role = ((session?.user as { role?: string } | undefined)?.role ?? "ADMIN");
+  const name = session?.user?.name ?? "Admin";
+  const email = session?.user?.email ?? "";
+  return (
   <div className="app">
     <AppBar active="" onNav={() => {}} role="ADMIN" showSearch={true} />
     <div style={{ display:"flex", minHeight: "calc(100vh - 72px)" }}>
@@ -44,33 +50,53 @@ const AdminShell = ({ active, onNav, children }: { active: string; onNav: (k: st
         ))}
         <div style={{ flex: 1 }}/>
         <div style={{ padding: 12, background:"var(--bg-soft)", borderRadius: 12, border:"1px solid var(--hairline)", marginTop: 12 }}>
-          <span className="chip chip-brand" style={{ marginBottom: 8 }}><Icon name="shield" size={11}/> Super admin</span>
-          <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6 }}>Imam Yusuf</div>
-          <div style={{ fontSize: 11, color:"var(--ink-3)" }}>imam@nasym.org</div>
+          <span className="chip chip-brand" style={{ marginBottom: 8 }}><Icon name="shield" size={11}/> {role === "ADMIN" ? "Super admin" : role}</span>
+          <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6 }}>{name}</div>
+          <div style={{ fontSize: 11, color:"var(--ink-3)" }}>{email}</div>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto" }}>{children}</div>
     </div>
   </div>
-);
+  );
+};
+
+const ROUTE_KEYS: Record<string, string> = {
+  users: "/admin/users",
+  classes: "/admin/classes",
+  lessons: "/admin/lessons",
+  quizzes: "/admin/quizzes",
+  news: "/admin/news",
+  posters: "/admin/posters",
+  reports: "/admin/reports",
+  analytics: "/admin/analytics",
+};
 
 const AdminClient = () => {
   const [view, setView] = useState("overview");
+  const router = useRouter();
+  const { data: session } = useSession();
+  const adminName = (session?.user?.name ?? "Admin").split(" ")[0];
 
-  if (view === "users")       return <AdminShell active="users"       onNav={setView}><AdminUsers /></AdminShell>;
-  if (view === "approvals")   return <AdminShell active="approvals"   onNav={setView}><AdminApprovals /></AdminShell>;
-  if (view === "invitations") return <AdminShell active="invitations" onNav={setView}><AdminInvitations /></AdminShell>;
-  if (view === "courses")     return <AdminShell active="courses"     onNav={setView}><AdminCourses /></AdminShell>;
-  if (view === "perms")       return <AdminShell active="perms"       onNav={setView}><AdminPerms /></AdminShell>;
-  if (view === "ask")         return <AdminShell active="ask"         onNav={setView}><AdminAskUs /></AdminShell>;
+  const handleNav = (k: string) => {
+    const route = ROUTE_KEYS[k];
+    if (route) { router.push(route); return; }
+    setView(k);
+  };
+
+  if (view === "approvals")   return <AdminShell active="approvals"   onNav={handleNav}><AdminApprovals /></AdminShell>;
+  if (view === "invitations") return <AdminShell active="invitations" onNav={handleNav}><AdminInvitations /></AdminShell>;
+  if (view === "courses")     return <AdminShell active="courses"     onNav={handleNav}><AdminCourses /></AdminShell>;
+  if (view === "perms")       return <AdminShell active="perms"       onNav={handleNav}><AdminPerms /></AdminShell>;
+  if (view === "ask")         return <AdminShell active="ask"         onNav={handleNav}><AdminAskUs /></AdminShell>;
 
   return (
-    <AdminShell active="overview" onNav={setView}>
+    <AdminShell active="overview" onNav={handleNav}>
       <div style={{ padding: "32px 36px 56px" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom: 24 }}>
           <div>
             <div className="eyebrow">Admin overview</div>
-            <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing:"-0.025em", margin: "6px 0 0" }}>Good morning, Imam Yusuf</h1>
+            <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing:"-0.025em", margin: "6px 0 0" }}>Good morning, {adminName}</h1>
             <p style={{ color:"var(--ink-3)", marginTop: 6 }}>Here&apos;s what&apos;s happening across Nasym Ur Rahmah today.</p>
           </div>
           <div style={{ display:"flex", gap: 8 }}>

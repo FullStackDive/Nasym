@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireActiveUser } from "@/lib/server-session";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { DUAS } from "@/lib/duas";
+
+const DUA_KEYS = DUAS.map(d => d.key) as [string, ...string[]];
 
 export async function GET() {
   const { session, blocked } = await requireActiveUser();
@@ -11,7 +14,7 @@ export async function GET() {
   const userId = session.user.id;
 
   const [user, lessonsCompleted, quizzesTaken, scoreAgg] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true, duaKey: true } }),
     prisma.lessonProgress.count({ where: { userId } }),
     prisma.quizAttempt.count({ where: { userId } }),
     prisma.quizAttempt.aggregate({ where: { userId }, _avg: { score: true } })
@@ -22,6 +25,7 @@ export async function GET() {
   return NextResponse.json({
     name: user.name,
     email: user.email,
+    duaKey: user.duaKey ?? null,
     lessonsCompleted,
     quizzesTaken,
     avgScore: scoreAgg._avg.score ?? 0
@@ -31,6 +35,7 @@ export async function GET() {
 const schema = z
   .object({
     name: z.string().min(2).max(60).optional(),
+    duaKey: z.enum(DUA_KEYS).nullable().optional(),
     currentPassword: z.string().optional(),
     newPassword: z.string().min(6).max(100).optional()
   })
@@ -49,10 +54,11 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: parsed.error.errors[0]?.message ?? "Invalid input" }, { status: 400 });
   }
 
-  const { name, currentPassword, newPassword } = parsed.data;
-  const updateData: { name?: string; passwordHash?: string } = {};
+  const { name, duaKey, currentPassword, newPassword } = parsed.data;
+  const updateData: { name?: string; passwordHash?: string; duaKey?: string | null } = {};
 
   if (name) updateData.name = name;
+  if (duaKey !== undefined) updateData.duaKey = duaKey;
 
   if (newPassword) {
     const user = await prisma.user.findUnique({

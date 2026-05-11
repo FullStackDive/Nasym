@@ -1,23 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge, Button, Card, Input } from "@/components/ui";
+
+type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
+type Status = "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED" | "BANNED" | "REJECTED";
 
 type UserRow = {
   id: string;
   name: string | null;
   email: string;
-  role: "ADMIN" | "STUDENT";
-  status: "ACTIVE" | "SUSPENDED" | "BANNED";
+  role: Role;
+  status: Status;
   statusReason?: string | null;
   suspendedUntil?: string | null;
   createdAt: string;
 };
 
-function statusBadge(status: UserRow["status"]) {
-  if (status === "ACTIVE") return <Badge>ACTIVE</Badge>;
+function statusBadge(status: Status) {
+  if (status === "ACTIVE") return <Badge className="bg-emerald-100 text-emerald-900">ACTIVE</Badge>;
+  if (status === "PENDING_APPROVAL") return <Badge className="bg-amber-100 text-amber-900">PENDING</Badge>;
   if (status === "SUSPENDED") return <Badge className="bg-amber-100 text-amber-900">SUSPENDED</Badge>;
+  if (status === "REJECTED") return <Badge className="bg-slate-100 text-slate-700">REJECTED</Badge>;
   return <Badge className="bg-red-100 text-red-900">BANNED</Badge>;
 }
 
@@ -25,15 +30,16 @@ export default function AdminUsersClient() {
   const [items, setItems] = useState<UserRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  // status form
+  // Status modal state
   const [selected, setSelected] = useState<UserRow | null>(null);
-  const [status, setStatus] = useState<UserRow["status"]>("ACTIVE");
+  const [status, setStatus] = useState<Status>("ACTIVE");
   const [reason, setReason] = useState("");
-  const [until, setUntil] = useState(""); // local datetime string
+  const [until, setUntil] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const res = await fetch("/api/admin/users");
     const d = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -42,23 +48,51 @@ export default function AdminUsersClient() {
     }
     setItems(d.users ?? []);
     setErr(null);
-  }
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refresh();
   }, []);
 
-  function pick(u: UserRow) {
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  async function approve(u: UserRow) {
+    if (!confirm(`Approve ${u.email}? They'll be emailed and can sign in.`)) return;
+    setBusyId(u.id);
+    setErr(null);
+    const res = await fetch(`/api/admin/users/${u.id}/approve`, { method: "POST" });
+    setBusyId(null);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setErr(d?.error ?? "Approve failed");
+      return;
+    }
+    void refresh();
+  }
+
+  async function reject(u: UserRow) {
+    const reason = prompt(`Reject ${u.email}? Optional reason:`);
+    if (reason === null) return;
+    setBusyId(u.id);
+    setErr(null);
+    const res = await fetch(`/api/admin/users/${u.id}/reject`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: reason || undefined }),
+    });
+    setBusyId(null);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setErr(d?.error ?? "Reject failed");
+      return;
+    }
+    void refresh();
+  }
+
+  function pickForStatus(u: UserRow) {
     setSelected(u);
-    setStatus(u.status);
+    setStatus(u.status === "PENDING_APPROVAL" || u.status === "REJECTED" ? "ACTIVE" : u.status);
     setReason(u.statusReason ?? "");
-    // show in local datetime input if possible
     if (u.suspendedUntil) {
       const dt = new Date(u.suspendedUntil);
       const pad = (n: number) => String(n).padStart(2, "0");
-      const local = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
-      setUntil(local);
+      setUntil(`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`);
     } else {
       setUntil("");
     }
@@ -76,15 +110,10 @@ export default function AdminUsersClient() {
     setSaving(true);
     setErr(null);
 
-    let suspendedUntil: string | null | undefined = null;
+    let suspendedUntil: string | null = null;
     if (status === "SUSPENDED") {
-      if (!until) {
-        setSaving(false);
-        setErr("For SUSPENDED, please set 'Suspended until'.");
-        return;
-      }
-      const iso = new Date(until).toISOString();
-      suspendedUntil = iso;
+      if (!until) { setSaving(false); setErr("For SUSPENDED, set 'Suspended until'."); return; }
+      suspendedUntil = new Date(until).toISOString();
     }
 
     const res = await fetch(`/api/admin/users/${selected.id}/status`, {
@@ -93,44 +122,74 @@ export default function AdminUsersClient() {
       body: JSON.stringify({
         status,
         reason: reason || null,
-        suspendedUntil: status === "SUSPENDED" ? suspendedUntil : null
-      })
+        suspendedUntil: status === "SUSPENDED" ? suspendedUntil : null,
+      }),
     });
-
     const d = await res.json().catch(() => ({}));
     setSaving(false);
-
-    if (!res.ok) {
-      setErr(d?.error ?? "Update failed");
-      return;
-    }
-
+    if (!res.ok) { setErr(d?.error ?? "Update failed"); return; }
     clearPick();
-    await refresh();
+    void refresh();
   }
 
-  const filtered = items.filter((u) => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return true;
-    return (u.email?.toLowerCase().includes(q) || (u.name ?? "").toLowerCase().includes(q));
-  });
+  const pending = items.filter(u => u.status === "PENDING_APPROVAL");
+  const others = items.filter(u => u.status !== "PENDING_APPROVAL");
+  const q = filter.trim().toLowerCase();
+  const filtered = !q ? others : others.filter(u =>
+    u.email.toLowerCase().includes(q) || (u.name ?? "").toLowerCase().includes(q)
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Users</h1>
-          <p className="mt-2 text-slate-600">Create users, assign permissions, and ban/suspend accounts.</p>
+          <p className="mt-2 text-slate-600">Approve registrations, manage status, set permissions.</p>
         </div>
         <Link href="/admin"><Button variant="secondary">Back</Button></Link>
       </div>
 
       {err && <Card className="mt-4 p-4 text-sm text-red-600">{err}</Card>}
 
+      {/* Pending approval queue */}
+      <Card className="mt-6 p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-extrabold">Pending approval ({pending.length})</h2>
+          {pending.length > 0 && <span className="text-xs text-slate-500">Approve or reject new registrations</span>}
+        </div>
+        {pending.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-600">No pending registrations.</p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {pending.map(u => (
+              <div key={u.id} className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-extrabold">{u.name || "—"}</p>
+                    <p className="text-sm text-slate-600">{u.email}</p>
+                    <p className="mt-1 text-xs text-slate-500">Registered: {new Date(u.createdAt).toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge>{u.role}</Badge>
+                    <Button onClick={() => approve(u)} disabled={busyId === u.id}>
+                      {busyId === u.id ? "…" : "Approve"}
+                    </Button>
+                    <Button variant="secondary" onClick={() => reject(u)} disabled={busyId === u.id}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* All users */}
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <Card className="p-6 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-extrabold">All users</h2>
+            <h2 className="font-extrabold">All users ({others.length})</h2>
             <div className="w-full sm:w-64">
               <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search by name/email" />
             </div>
@@ -138,11 +197,10 @@ export default function AdminUsersClient() {
 
           <div className="mt-4 space-y-3">
             {filtered.map((u) => (
-              <button
+              <div
                 key={u.id}
-                onClick={() => pick(u)}
-                className={`w-full rounded-2xl border p-4 text-left transition ${
-                  selected?.id === u.id ? "border-brand-300 bg-brand-50" : "border-slate-100 hover:bg-slate-50"
+                className={`rounded-2xl border p-4 ${
+                  selected?.id === u.id ? "border-brand-300 bg-brand-50" : "border-slate-100"
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -168,21 +226,23 @@ export default function AdminUsersClient() {
                 ) : null}
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Link href={`/admin/users/${u.id}/permissions`} onClick={(e) => e.stopPropagation()}>
+                  <Button variant="secondary" onClick={() => pickForStatus(u)}>Manage status</Button>
+                  <Link href={`/admin/users/${u.id}/permissions`}>
                     <Button variant="secondary">Permissions</Button>
                   </Link>
                 </div>
-              </button>
+              </div>
             ))}
+            {filtered.length === 0 && <p className="text-sm text-slate-500">No users match.</p>}
           </div>
         </Card>
 
         <Card className="p-6">
-          <h2 className="font-extrabold">Ban / Suspend</h2>
-          <p className="mt-2 text-sm text-slate-600">Select a user on the left to manage status.</p>
+          <h2 className="font-extrabold">Status</h2>
+          <p className="mt-2 text-sm text-slate-600">Suspend, ban, or restore a user.</p>
 
           {!selected ? (
-            <p className="mt-4 text-sm text-slate-600">No user selected.</p>
+            <p className="mt-4 text-sm text-slate-600">Click <strong>Manage status</strong> on a user.</p>
           ) : (
             <div className="mt-4 space-y-3">
               <div className="rounded-2xl border border-slate-100 p-4">
@@ -199,7 +259,7 @@ export default function AdminUsersClient() {
                 <select
                   className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
                   value={status}
-                  onChange={(e) => setStatus(e.target.value as any)}
+                  onChange={(e) => setStatus(e.target.value as Status)}
                 >
                   <option value="ACTIVE">ACTIVE (unban/unsuspend)</option>
                   <option value="SUSPENDED">SUSPENDED</option>
@@ -211,7 +271,7 @@ export default function AdminUsersClient() {
                 <div>
                   <label className="text-sm font-semibold">Suspended until</label>
                   <Input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
-                  <p className="mt-1 text-xs text-slate-500">Set a future date/time. If time passes, user auto-reactivates.</p>
+                  <p className="mt-1 text-xs text-slate-500">User auto-reactivates after this time.</p>
                 </div>
               )}
 
@@ -222,13 +282,13 @@ export default function AdminUsersClient() {
 
               <div className="flex flex-wrap gap-2">
                 <Button onClick={saveStatus} disabled={saving} className="flex-1">
-                  {saving ? "Saving..." : "Save"}
+                  {saving ? "Saving…" : "Save"}
                 </Button>
                 <Button variant="secondary" onClick={clearPick}>Cancel</Button>
               </div>
 
               <p className="text-xs text-slate-500">
-                Notes: BANNED users cannot log in. SUSPENDED users cannot log in until the suspension expires.
+                BANNED users cannot log in. SUSPENDED users cannot log in until the time expires.
               </p>
             </div>
           )}

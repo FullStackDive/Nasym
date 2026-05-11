@@ -5,10 +5,12 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Icon, AppBar } from "./ui";
 import { Breeze, KhatamPattern, LeafSprig } from "./motifs";
+import { useTheme, type Theme } from "./theme-provider";
+import { DUAS, getDua } from "@/lib/duas";
 
 type IconName = "home" | "book" | "video" | "users" | "user" | "newspaper" | "bell" | "settings" | "search" | "play" | "pause" | "mic" | "mic-off" | "cam" | "cam-off" | "hand" | "send" | "rec" | "chat" | "poll" | "notes" | "trophy" | "flame" | "star" | "leaf" | "calendar" | "clock" | "check" | "plus" | "filter" | "more" | "shield" | "globe" | "lock" | "mail" | "moon" | "arrow-right" | "trend" | "download" | "upload" | "edit" | "trash" | "eye" | "key" | "wind";
 
-type Profile = { name: string; email: string; lessonsCompleted: number; quizzesTaken: number; avgScore: number };
+type Profile = { name: string; email: string; duaKey: string | null; lessonsCompleted: number; quizzesTaken: number; avgScore: number };
 type Permissions = { permissions: string[]; role?: string };
 
 const PERMISSION_LABELS: { key: string; label: string }[] = [
@@ -33,6 +35,7 @@ const ProfileClient = () => {
   const [perms, setPerms] = useState<Permissions | null>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showDua, setShowDua] = useState(false);
 
   const loadProfile = useCallback(async () => {
     const res = await fetch("/api/me/profile");
@@ -126,9 +129,20 @@ const ProfileClient = () => {
                 <KhatamPattern opacity={0.05} />
                 <div style={{ position: "absolute", top: 16, right: 16 }}><LeafSprig size={28}/></div>
                 <div style={{ position: "relative" }}>
-                  <div className="eyebrow">My duʿāʾ</div>
-                  <p className="arabic" dir="rtl" style={{ fontSize: 28, fontWeight: 700, margin: "12px 0 8px", textAlign: "right", lineHeight: 1.5, color: "var(--brand-800)" }}>رَّبِّ زِدْنِي عِلْمًا</p>
-                  <p className="serif" style={{ fontSize: 14, fontStyle: "italic", color: "var(--ink-3)", margin: 0 }}>&ldquo;My Lord, increase me in knowledge.&rdquo;</p>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <div className="eyebrow">My duʿāʾ</div>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setShowDua(true)} style={{ padding: "4px 10px", fontSize: 12 }}><Icon name="edit" size={12} /> Change</button>
+                  </div>
+                  {(() => {
+                    const d = getDua(profile.duaKey);
+                    return (
+                      <>
+                        <p className="arabic" dir="rtl" style={{ fontSize: 28, fontWeight: 700, margin: "12px 0 8px", textAlign: "right", lineHeight: 1.5, color: "var(--brand-800)" }}>{d.arabic}</p>
+                        <p className="serif" style={{ fontSize: 14, fontStyle: "italic", color: "var(--ink-3)", margin: 0 }}>&ldquo;{d.english}&rdquo;</p>
+                        <p style={{ marginTop: 6, fontSize: 11, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>{d.citation}</p>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -147,7 +161,56 @@ const ProfileClient = () => {
 
       {showEdit && <EditProfileModal profile={profile} onClose={() => setShowEdit(false)} onSaved={() => { setShowEdit(false); loadProfile(); }} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onSaved={() => { setShowSettings(false); loadProfile(); }} />}
+      {showDua && <DuaPickerModal current={profile.duaKey} onClose={() => setShowDua(false)} onSaved={() => { setShowDua(false); loadProfile(); }} />}
     </div>
+  );
+};
+
+const DuaPickerModal = ({ current, onClose, onSaved }: { current: string | null; onClose: () => void; onSaved: () => void }) => {
+  const [pick, setPick] = useState<string>(current ?? DUAS[0].key);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    const res = await fetch("/api/me/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ duaKey: pick }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setError(d.error ?? "Could not save");
+      return;
+    }
+    onSaved();
+  }
+
+  return (
+    <Modal title="Pick your duʿāʾ" onClose={onClose}>
+      <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+        Shown on your profile card. Pick one that resonates with you right now.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "55vh", overflowY: "auto", paddingRight: 4 }}>
+        {DUAS.map(d => (
+          <label key={d.key} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", background: pick === d.key ? "var(--mint-bg)" : "var(--bg-soft)", borderRadius: 12, border: "1px solid " + (pick === d.key ? "var(--mint-300)" : "var(--hairline)"), cursor: "pointer" }}>
+            <input type="radio" name="dua" checked={pick === d.key} onChange={() => setPick(d.key)} style={{ marginTop: 4, accentColor: "var(--brand-700)" }} />
+            <div style={{ flex: 1 }}>
+              <p className="arabic" dir="rtl" style={{ fontSize: 20, fontWeight: 700, margin: 0, color: "var(--brand-800)", textAlign: "right", lineHeight: 1.4 }}>{d.arabic}</p>
+              <p className="serif" style={{ fontSize: 13, fontStyle: "italic", color: "var(--ink-2)", margin: "4px 0 2px" }}>&ldquo;{d.english}&rdquo;</p>
+              <p style={{ margin: 0, fontSize: 10, color: "var(--ink-3)", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>{d.citation}</p>
+            </div>
+          </label>
+        ))}
+      </div>
+      {error && <div style={{ color: "var(--accent-700)", fontSize: 13, marginTop: 10 }}>{error}</div>}
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
+        <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+        <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+      </div>
+    </Modal>
   );
 };
 
@@ -218,13 +281,15 @@ const EditProfileModal = ({ profile, onClose, onSaved }: { profile: Profile; onC
 };
 
 const SettingsModal = ({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) => {
-  const [section, setSection] = useState<"password" | "preferences">("password");
+  const [section, setSection] = useState<"password" | "preferences" | "appearance">("password");
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const { theme, setTheme, resolved } = useTheme();
 
   const [emailNotif, setEmailNotif] = useState(() => typeof window !== "undefined" ? localStorage.getItem("pref:email-notif") !== "0" : true);
   const [reminders, setReminders] = useState(() => typeof window !== "undefined" ? localStorage.getItem("pref:reminders") !== "0" : true);
@@ -262,7 +327,7 @@ const SettingsModal = ({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   return (
     <Modal title="Settings" onClose={onClose}>
       <div style={{ display: "flex", gap: 4, marginBottom: 18, borderBottom: "1px solid var(--hairline)" }}>
-        {([["password", "Password"], ["preferences", "Preferences"]] as const).map(([k, l]) => (
+        {([["password", "Password"], ["preferences", "Preferences"], ["appearance", "Appearance"]] as const).map(([k, l]) => (
           <button key={k} type="button" className="btn btn-ghost btn-sm" onClick={() => { setSection(k); setError(null); setSuccess(null); }} style={{ borderRadius: 0, borderBottom: section === k ? "2px solid var(--brand-700)" : "2px solid transparent", color: section === k ? "var(--brand-700)" : "var(--ink-3)" }}>{l}</button>
         ))}
       </div>
@@ -298,6 +363,26 @@ const SettingsModal = ({ onClose, onSaved }: { onClose: () => void; onSaved: () 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 6 }}>
             <button type="button" className="btn btn-ghost" onClick={onClose}>Close</button>
             <button type="button" className="btn btn-primary" onClick={savePreferences}>Save preferences</button>
+          </div>
+        </div>
+      )}
+
+      {section === "appearance" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", margin: 0 }}>
+            Choose how the app looks. <strong>System</strong> follows your device setting (currently <em>{resolved}</em>).
+          </p>
+          {([["system", "System", "Match device setting"], ["light", "Light", "Always light"], ["dark", "Dark", "Always dark"]] as [Theme, string, string][]).map(([k, label, desc]) => (
+            <label key={k} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: theme === k ? "var(--mint-bg)" : "var(--bg-soft)", borderRadius: 12, border: "1px solid " + (theme === k ? "var(--mint-300)" : "var(--hairline)"), cursor: "pointer" }}>
+              <input type="radio" name="theme" checked={theme === k} onChange={() => setTheme(k)} style={{ accentColor: "var(--brand-700)" }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{label}</div>
+                <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>{desc}</div>
+              </div>
+            </label>
+          ))}
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 6 }}>
+            <button type="button" className="btn btn-ghost" onClick={onClose}>Close</button>
           </div>
         </div>
       )}
