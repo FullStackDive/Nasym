@@ -1,214 +1,504 @@
 "use client";
 
-import { useState } from "react";
-import { Icon, Avatar } from "./ui";
-import { KhatamPattern } from "./motifs";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
-const participants = [
-  { name: "Yusuf al-Madani", role: "teacher", speaking: true, hand: false },
-  { name: "Aisha Khan", role: "you", hand: false, speaking: false },
-  { name: "Bilal Hossain", role: "student", hand: true, speaking: false },
-  { name: "Fatima Noor", role: "student", hand: false, speaking: false },
-  { name: "Omar Siddiqui", role: "student", hand: false, speaking: false },
-  { name: "Maryam Yusuf", role: "student", hand: false, speaking: false },
-  { name: "Hamza Adel", role: "student", hand: true, speaking: false },
-  { name: "Layla Iqbal", role: "student", hand: false, speaking: false },
-];
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    JitsiMeetExternalAPI: new (domain: string, options: Record<string, unknown>) => any;
+  }
+}
 
-const chat = [
-  { who: "Yusuf al-Madani", role:"teacher", msg: "We'll start with verse 13 — keep your tafsīr open.", t: "7:02" },
-  { who: "Bilal Hossain", role:"student", msg: "Jazākum Allāh khayran shaykh", t: "7:03" },
-  { who: "Maryam Yusuf", role:"student", msg: "Quick q: what does “fitna” mean here specifically?", t: "7:08" },
-  { who: "Yusuf al-Madani", role:"teacher", msg: "Great question — putting it in the queue.", t: "7:09" },
-];
+type ClassSession = {
+  id: string;
+  title: string;
+  description: string;
+  scheduledAt: string;
+  roomName: string;
+  isLive: boolean;
+  courseId: string | null;
+  createdBy: { id: string; name: string };
+};
 
-const slides = [
-  { n: 1, title: "Sūrah al-Kahf · Lesson 7" },
-  { n: 2, title: "The People of the Cave (Pt. 2)" },
-  { n: 3, title: "Verse 13 — context & translation" },
-  { n: 4, title: "Three lessons in tawakkul" },
-  { n: 5, title: "Q&A · Reflection" },
-];
+type Message = {
+  id: string;
+  body: string;
+  createdAt: string;
+  user: { id: string; name: string; role: string };
+};
 
-const ClassroomClient = () => {
-  const [tab, setTab] = useState("chat");
-  const [muted, setMuted] = useState(true);
-  const [cam, setCam] = useState(false);
-  const [hand, setHand] = useState(false);
-  const [recording, setRecording] = useState(true);
-  const [slide, setSlide] = useState(3);
-  const [pollOpen] = useState(true);
-  const [pollAnswer, setPollAnswer] = useState<string | null>(null);
-  const [time] = useState("32:14");
+type Hand = {
+  id: string;
+  raisedAt: string;
+  question: string | null;
+  user: { id: string; name: string; role: string };
+};
+
+const POLL_MS = 3000;
+
+function timeOf(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function initialsOf(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+type Props = { roomName?: string; classId?: string };
+
+const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
+  const router = useRouter();
+  const { data: session, status: authStatus } = useSession();
+
+  const [roomName, setRoomName] = useState<string | null>(roomNameProp ?? null);
+  const [classSession, setClassSession] = useState<ClassSession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const apiRef = useRef<any>(null);
+  const [jitsiReady, setJitsiReady] = useState(false);
+
+  const [messages, setMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  const [hands, setHands] = useState<Hand[]>([]);
+  const [isMod, setIsMod] = useState(false);
+  const [myHandUp, setMyHandUp] = useState(false);
+  const [questionDraft, setQuestionDraft] = useState("");
+
+  const [tab, setTab] = useState<"chat" | "qa" | "people">("chat");
+
+  const jitsiDomain = process.env.NEXT_PUBLIC_JITSI_DOMAIN ?? "meet.jit.si";
+
+  // 1) Resolve roomName: from prop, or fetch via classId
+  useEffect(() => {
+    if (roomNameProp) {
+      setRoomName(roomNameProp);
+      return;
+    }
+    if (!classId) {
+      setError("Missing classroom identifier");
+      setLoading(false);
+      return;
+    }
+    fetch(`/api/classes/${classId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error || !d.class) {
+          setError(d.error ?? "Class not found");
+          setLoading(false);
+          return;
+        }
+        setRoomName(d.class.roomName);
+      })
+      .catch(() => {
+        setError("Failed to load class");
+        setLoading(false);
+      });
+  }, [roomNameProp, classId]);
+
+  // 2) Resolve classSession via roomName (this enforces access)
+  useEffect(() => {
+    if (!roomName) return;
+    setLoading(true);
+    fetch(`/api/live/${roomName}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) {
+          setError(d.error);
+          return;
+        }
+        setClassSession(d.session);
+      })
+      .catch(() => setError("Failed to load session"))
+      .finally(() => setLoading(false));
+  }, [roomName]);
+
+  // 3) Load Jitsi script
+  useEffect(() => {
+    if (jitsiReady) return;
+    if (typeof window === "undefined") return;
+    if (window.JitsiMeetExternalAPI) {
+      setJitsiReady(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = `https://${jitsiDomain}/external_api.js`;
+    script.async = true;
+    script.onload = () => setJitsiReady(true);
+    document.head.appendChild(script);
+  }, [jitsiDomain, jitsiReady]);
+
+  // 4) Mount Jitsi iframe
+  useEffect(() => {
+    if (!jitsiReady || !classSession || !session || !containerRef.current) return;
+    if (apiRef.current) return;
+
+    const role = session.user.role;
+    const mod = role === "ADMIN" || role === "TEACHER" || classSession.createdBy.id === session.user.id;
+    setIsMod(mod);
+
+    apiRef.current = new window.JitsiMeetExternalAPI(jitsiDomain, {
+      roomName: classSession.roomName,
+      parentNode: containerRef.current,
+      width: "100%",
+      height: "100%",
+      userInfo: {
+        displayName: session.user.name ?? "Student",
+        email: session.user.email ?? "",
+      },
+      configOverwrite: {
+        startWithAudioMuted: !mod,
+        startWithVideoMuted: !mod,
+        disableDeepLinking: true,
+        prejoinPageEnabled: false,
+      },
+      interfaceConfigOverwrite: {
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
+        TOOLBAR_BUTTONS: mod
+          ? ["microphone", "camera", "desktop", "chat", "raisehand", "tileview", "participants-pane", "hangup", "recording", "settings"]
+          : ["microphone", "camera", "chat", "raisehand", "tileview", "hangup", "settings"],
+      },
+    });
+
+    apiRef.current.addEventListener("readyToClose", () => {
+      router.push("/classes");
+    });
+
+    return () => {
+      if (apiRef.current) {
+        apiRef.current.dispose();
+        apiRef.current = null;
+      }
+    };
+  }, [jitsiReady, classSession, session, jitsiDomain, router]);
+
+  // 5) Poll chat
+  const fetchMessages = useCallback(async () => {
+    if (!roomName) return;
+    const lastIso = messages.length ? messages[messages.length - 1].createdAt : null;
+    const url = `/api/live/${roomName}/messages${lastIso ? `?since=${encodeURIComponent(lastIso)}` : ""}`;
+    const res = await fetch(url).catch(() => null);
+    if (!res || !res.ok) return;
+    const d = await res.json().catch(() => null);
+    if (!d?.messages?.length) return;
+    setMessages(prev => {
+      const seen = new Set(prev.map(m => m.id));
+      const fresh = (d.messages as Message[]).filter(m => !seen.has(m.id));
+      return fresh.length ? [...prev, ...fresh] : prev;
+    });
+  }, [roomName, messages]);
+
+  useEffect(() => {
+    if (!roomName || !classSession) return;
+    void fetchMessages();
+    const t = setInterval(() => void fetchMessages(), POLL_MS);
+    return () => clearInterval(t);
+  }, [roomName, classSession, fetchMessages]);
+
+  // Auto-scroll chat when new messages arrive
+  useEffect(() => {
+    if (tab !== "chat") return;
+    const el = chatScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length, tab]);
+
+  // 6) Poll hands
+  const fetchHands = useCallback(async () => {
+    if (!roomName) return;
+    const res = await fetch(`/api/live/${roomName}/hands`).catch(() => null);
+    if (!res || !res.ok) return;
+    const d = await res.json().catch(() => null);
+    if (!d?.hands) return;
+    setHands(d.hands as Hand[]);
+    if (typeof d.isMod === "boolean") setIsMod(d.isMod);
+    if (session?.user?.id) {
+      setMyHandUp((d.hands as Hand[]).some(h => h.user.id === session.user.id));
+    }
+  }, [roomName, session]);
+
+  useEffect(() => {
+    if (!roomName || !classSession) return;
+    void fetchHands();
+    const t = setInterval(() => void fetchHands(), POLL_MS);
+    return () => clearInterval(t);
+  }, [roomName, classSession, fetchHands]);
+
+  // Actions
+  const sendMessage = useCallback(async () => {
+    const body = chatInput.trim();
+    if (!body || !roomName || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/live/${roomName}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.message) {
+          setMessages(prev =>
+            prev.some(m => m.id === d.message.id) ? prev : [...prev, d.message]
+          );
+        }
+        setChatInput("");
+      }
+    } finally {
+      setSending(false);
+    }
+  }, [chatInput, roomName, sending]);
+
+  const raiseHand = useCallback(async () => {
+    if (!roomName) return;
+    await fetch(`/api/live/${roomName}/hands`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: questionDraft.trim() || undefined }),
+    });
+    setQuestionDraft("");
+    void fetchHands();
+  }, [roomName, questionDraft, fetchHands]);
+
+  const lowerHand = useCallback(
+    async (handId: string) => {
+      if (!roomName) return;
+      await fetch(`/api/live/${roomName}/hands`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ handId, lower: true }),
+      });
+      void fetchHands();
+    },
+    [roomName, fetchHands]
+  );
+
+  const setLive = useCallback(
+    async (live: boolean) => {
+      if (!classSession?.courseId) {
+        setError("This session has no course attached — cannot toggle live state from here.");
+        return;
+      }
+      const res = await fetch(`/api/courses/${classSession.courseId}/sessions/${classSession.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isLive: live }),
+      });
+      if (res.ok) setClassSession(s => (s ? { ...s, isLive: live } : s));
+    },
+    [classSession]
+  );
+
+  const participants = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; role: string }>();
+    messages.forEach(m => map.set(m.user.id, m.user));
+    hands.forEach(h => map.set(h.user.id, h.user));
+    if (classSession) map.set(classSession.createdBy.id, { ...classSession.createdBy, role: "TEACHER" });
+    if (session?.user?.id)
+      map.set(session.user.id, { id: session.user.id, name: session.user.name ?? "You", role: session.user.role });
+    return Array.from(map.values());
+  }, [messages, hands, classSession, session]);
+
+  if (authStatus === "loading" || loading) {
+    return (
+      <div style={containerStyle}>
+        <div style={{ color: "rgba(255,255,255,0.7)" }}>Loading classroom…</div>
+      </div>
+    );
+  }
+
+  if (authStatus === "unauthenticated") {
+    return (
+      <div style={containerStyle}>
+        <div style={{ textAlign: "center", color: "white" }}>
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>Sign in required</div>
+          <button onClick={() => router.push("/auth/signin")} style={primaryBtn}>Sign in</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !classSession) {
+    return (
+      <div style={containerStyle}>
+        <div style={{ textAlign: "center", color: "white" }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+          <div style={{ fontWeight: 600, fontSize: 18 }}>{error || "Session not found"}</div>
+          <button onClick={() => router.push("/classes")} style={{ ...secondaryBtn, marginTop: 16 }}>
+            Back to classes
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="app" style={{ background: "oklch(0.14 0.018 165)", color: "white", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0e1411", color: "white" }}>
       {/* Top bar */}
-      <div style={{ height: 58, padding: "0 20px", display:"flex", alignItems:"center", gap: 16, borderBottom:"1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.25)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap: 10 }}>
-          <span className="chip chip-live">● REC {time}</span>
-        </div>
+      <div style={topBar}>
+        <button onClick={() => router.push("/classes")} style={iconBtn} aria-label="Back">←</button>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Tafsīr of Sūrah al-Kahf · Lesson 7</div>
-          <div style={{ fontSize: 11, opacity: 0.6 }}>Sh. Yusuf al-Madani · 142 attending</div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{classSession.title}</div>
+          <div style={{ fontSize: 12, opacity: 0.6 }}>
+            {classSession.createdBy.name} · {new Date(classSession.scheduledAt).toLocaleString()}
+          </div>
         </div>
-        <div style={{ flex: 1 }}/>
-        <span className="chip" style={{ background:"rgba(255,255,255,0.06)", color:"white", borderColor:"rgba(255,255,255,0.12)" }}><Icon name="users" size={12}/> 142</span>
-        <button className="btn btn-ghost btn-sm" style={{ color:"white" }}><Icon name="settings" size={14}/></button>
-        <button className="btn" style={{ background:"oklch(0.55 0.22 25)", color:"white" }}>Leave</button>
+        {classSession.isLive && (
+          <span style={liveBadge}>● LIVE</span>
+        )}
+        <div style={{ flex: 1 }} />
+        {isMod && classSession.courseId && (
+          classSession.isLive ? (
+            <button onClick={() => setLive(false)} style={secondaryBtn}>End live</button>
+          ) : (
+            <button onClick={() => setLive(true)} style={{ ...primaryBtn, background: "#e53e3e" }}>● Go live</button>
+          )
+        )}
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns: "1fr 320px", flex: 1, minHeight: 0 }}>
-        {/* Stage */}
-        <div style={{ display:"flex", flexDirection:"column", padding: 16, gap: 12, minWidth: 0 }}>
-          <div style={{ flex: 1, display:"grid", gridTemplateColumns:"1.4fr .9fr", gap: 12, minHeight: 0 }}>
-            {/* Speaker tile */}
-            <div style={{ position:"relative", borderRadius: 18, overflow:"hidden", background: "linear-gradient(160deg, oklch(0.32 0.06 165), oklch(0.18 0.04 165))", display:"flex", alignItems:"center", justifyContent:"center", minHeight: 320 }}>
-              <KhatamPattern opacity={0.10} color="white" />
-              <div style={{ width: 130, height: 130, borderRadius: 999, background:"linear-gradient(135deg, oklch(0.55 0.13 165), oklch(0.30 0.08 165))", display:"flex", alignItems:"center", justifyContent:"center", fontSize: 44, fontWeight: 800, border:"4px solid oklch(0.55 0.18 70)", boxShadow:"0 0 0 8px rgba(245,180,80,0.20)" }}>YM</div>
-              <div style={{ position:"absolute", bottom: 14, left: 14, display:"flex", gap: 8, alignItems:"center" }}>
-                <span style={{ background:"rgba(0,0,0,0.55)", padding:"6px 12px", borderRadius: 999, fontSize: 13, fontWeight: 600 }}>Sh. Yusuf al-Madani</span>
-                <span style={{ background:"rgba(255,255,255,0.16)", padding:"6px 8px", borderRadius: 999, color:"oklch(0.85 0.18 140)", fontSize: 11 }}>● speaking</span>
-              </div>
-              <div style={{ position:"absolute", top: 14, right: 14, padding:"6px 10px", borderRadius: 999, background:"rgba(0,0,0,0.45)", fontSize: 11, fontWeight: 600 }}>PINNED</div>
+      {/* Body */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", flex: 1, minHeight: 0 }}>
+        {/* Stage: Jitsi */}
+        <div ref={containerRef} style={{ position: "relative", background: "#111" }}>
+          {!jitsiReady && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.5)" }}>
+              Connecting to room…
             </div>
-
-            {/* Slides panel */}
-            <div style={{ display:"flex", flexDirection:"column", gap: 8, minHeight: 0 }}>
-              <div style={{ flex: 1, borderRadius: 18, overflow:"hidden", border:"1px solid rgba(255,255,255,0.08)", background:"white", color:"oklch(0.18 0.02 220)", display:"flex", flexDirection:"column" }}>
-                <div style={{ padding: "10px 14px", borderBottom: "1px solid #eee", display:"flex", alignItems:"center", gap: 10, fontSize: 12, fontWeight: 600 }}>
-                  <Icon name="notes" size={14}/> Lesson notes · synced with teacher
-                  <span style={{ flex: 1 }}/>
-                  <span style={{ color:"var(--ink-3)" }}>{slide}/{slides.length}</span>
-                </div>
-                <div style={{ flex: 1, padding: 22, position:"relative", overflow:"hidden" }}>
-                  <KhatamPattern opacity={0.04} color="var(--brand-700)" />
-                  <div style={{ position:"relative" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing:".14em", textTransform:"uppercase", color:"var(--brand-700)" }}>Slide {slide}</div>
-                    <h3 style={{ margin: "6px 0 14px", fontSize: 18, fontWeight: 800, letterSpacing:"-0.01em", color:"var(--ink)" }}>{slides[slide-1].title}</h3>
-                    <p className="arabic" dir="rtl" style={{ fontSize: 22, fontWeight: 700, textAlign:"right", margin:"8px 0", color:"var(--ink)" }}>إِذْ أَوَى الْفِتْيَةُ إِلَى الْكَهْفِ</p>
-                    <p style={{ fontSize: 12, color:"var(--ink-3)", margin: 0 }}>&ldquo;When the youths retreated to the cave…&rdquo;</p>
-                    <ul style={{ marginTop: 14, paddingLeft: 18, fontSize: 13, color:"var(--ink-2)", lineHeight: 1.7 }}>
-                      <li>Active retreat — they <i>chose</i> faith over status.</li>
-                      <li>Tawakkul follows action, not laziness.</li>
-                      <li>Allāh&apos;s mercy meets us where we go to seek Him.</li>
-                    </ul>
-                  </div>
-                </div>
-                <div style={{ padding: "8px 12px", borderTop:"1px solid #eee", display:"flex", gap: 4 }}>
-                  {slides.map(s => (
-                    <button key={s.n} onClick={() => setSlide(s.n)} style={{ flex: 1, height: 4, borderRadius: 999, border:"none", background: slide >= s.n ? "var(--brand-600)" : "var(--hairline-2)", cursor:"pointer" }}/>
-                  ))}
-                </div>
-              </div>
-
-              {/* Poll widget */}
-              {pollOpen && (
-                <div style={{ borderRadius: 16, padding: 14, background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing:".1em", textTransform:"uppercase", color:"oklch(0.85 0.18 140)" }}><Icon name="poll" size={12}/> Live poll</div>
-                    <span style={{ fontSize: 11, opacity: 0.7 }}>89 / 142 voted</span>
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>What does <i>fitna</i> mean in 18:13?</div>
-                  {[["a","Trial / test"],["b","Punishment"],["c","Confusion"]].map(([k, v]) => (
-                    <button key={k} onClick={() => setPollAnswer(k)} style={{ display:"block", width:"100%", textAlign:"left", padding:"8px 12px", marginBottom: 6, borderRadius: 10, border:"1px solid rgba(255,255,255,0.12)", background: pollAnswer === k ? "oklch(0.55 0.13 162)" : "rgba(0,0,0,0.25)", color:"white", fontSize: 13, cursor:"pointer", fontFamily:"inherit" }}>
-                      <b style={{ marginRight: 8 }}>{k.toUpperCase()}.</b> {v}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Filmstrip */}
-          <div style={{ display:"flex", gap: 8, overflowX:"auto", paddingBottom: 4 }}>
-            {participants.slice(0, 7).map((p, i) => (
-              <div key={i} style={{ position:"relative", minWidth: 120, height: 80, borderRadius: 12, background:"linear-gradient(160deg, oklch(0.30 0.04 165), oklch(0.18 0.03 165))", display:"flex", alignItems:"center", justifyContent:"center", border: p.speaking ? "2px solid oklch(0.75 0.18 140)" : "1px solid rgba(255,255,255,0.08)" }}>
-                <Avatar name={p.name} size={42}/>
-                <span style={{ position:"absolute", bottom: 4, left: 6, fontSize: 10, fontWeight: 600, background:"rgba(0,0,0,0.55)", padding:"2px 6px", borderRadius: 6 }}>{p.name.split(" ")[0]}{p.role === "you" ? " (you)" : ""}</span>
-                {p.hand && <span style={{ position:"absolute", top: 4, right: 4, background:"oklch(0.74 0.16 70)", color:"white", borderRadius: 6, padding: "2px 4px", fontSize: 10 }}>✋</span>}
-                {p.role !== "teacher" && <span style={{ position:"absolute", top: 4, left: 6, color:"oklch(0.7 0.18 30)" }}><Icon name="mic-off" size={11}/></span>}
-              </div>
-            ))}
-            <div style={{ minWidth: 80, height: 80, borderRadius: 12, border:"1px dashed rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize: 11, opacity: 0.6 }}>+135</div>
-          </div>
-
-          {/* Controls */}
-          <div style={{ display:"flex", justifyContent:"center", gap: 10, padding: 8 }}>
-            <button onClick={() => setMuted(m => !m)} className="btn" style={{ background: muted ? "oklch(0.55 0.22 25)" : "rgba(255,255,255,0.10)", color:"white", borderRadius: 999, padding: "12px 16px" }}><Icon name={muted ? "mic-off" : "mic"} size={16}/></button>
-            <button onClick={() => setCam(c => !c)} className="btn" style={{ background: cam ? "rgba(255,255,255,0.10)" : "oklch(0.55 0.22 25)", color:"white", borderRadius: 999, padding: "12px 16px" }}><Icon name={cam ? "cam" : "cam-off"} size={16}/></button>
-            <button onClick={() => setHand(h => !h)} className="btn" style={{ background: hand ? "oklch(0.74 0.16 70)" : "rgba(255,255,255,0.10)", color:"white", borderRadius: 999, padding: "12px 16px" }}><Icon name="hand" size={16}/> {hand ? "Hand raised" : "Raise hand"}</button>
-            <button className="btn" style={{ background:"rgba(255,255,255,0.10)", color:"white", borderRadius: 999, padding: "12px 16px" }}><Icon name="chat" size={16}/> Chat</button>
-            <button onClick={() => setRecording(r => !r)} className="btn" style={{ background:"rgba(255,255,255,0.10)", color:"white", borderRadius: 999, padding: "12px 16px" }}>
-              <Icon name="rec" size={11}/>&nbsp;{recording ? "Stop rec" : "Record"}
-            </button>
-            <button className="btn" style={{ background:"rgba(255,255,255,0.10)", color:"white", borderRadius: 999, padding: "12px 16px" }}><Icon name="more" size={16}/></button>
-          </div>
+          )}
         </div>
 
         {/* Right rail */}
-        <div style={{ borderLeft:"1px solid rgba(255,255,255,0.08)", display:"flex", flexDirection:"column", background:"rgba(0,0,0,0.22)" }}>
-          <div style={{ display:"flex", padding: 6, gap: 4, borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
-            {[["chat","Chat"],["qa","Q&A · 2"],["people","People"]].map(([k, l]) => (
-              <button key={k} onClick={() => setTab(k)} className="btn" style={{ flex: 1, background: tab===k ? "rgba(255,255,255,0.10)" : "transparent", color: tab===k ? "white" : "rgba(255,255,255,0.6)", borderRadius: 10, padding: "8px 10px", fontSize: 12 }}>{l}</button>
+        <div style={rightRail}>
+          <div style={tabsRow}>
+            {([
+              ["chat", `Chat${messages.length ? ` · ${messages.length}` : ""}`],
+              ["qa", `Q&A${hands.length ? ` · ${hands.length}` : ""}`],
+              ["people", `People · ${participants.length}`],
+            ] as [typeof tab, string][]).map(([k, label]) => (
+              <button key={k} onClick={() => setTab(k)} style={tabBtn(tab === k)}>{label}</button>
             ))}
           </div>
 
           {tab === "chat" && (
             <>
-              <div style={{ flex: 1, padding: 14, overflowY:"auto", display:"flex", flexDirection:"column", gap: 14 }}>
-                {chat.map((m, i) => (
-                  <div key={i} style={{ display:"flex", gap: 10 }}>
-                    <Avatar name={m.who} size={28} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap: 6 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700 }}>{m.who.split(" ")[0]}</span>
-                        {m.role === "teacher" && <span className="chip" style={{ background:"oklch(0.55 0.13 162)", color:"white", borderColor:"transparent", padding:"1px 6px", fontSize: 10 }}>Teacher</span>}
-                        <span style={{ fontSize: 11, opacity: 0.5 }}>{m.t}</span>
-                      </div>
-                      <div style={{ fontSize: 13, color:"rgba(255,255,255,0.85)", marginTop: 2, lineHeight: 1.45 }}>{m.msg}</div>
-                    </div>
+              <div ref={chatScrollRef} style={chatScroll}>
+                {messages.length === 0 ? (
+                  <div style={{ fontSize: 13, opacity: 0.5, textAlign: "center", marginTop: 24 }}>
+                    No messages yet. Say salām!
                   </div>
-                ))}
+                ) : (
+                  messages.map(m => (
+                    <div key={m.id} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                      <div style={avatarStyle}>{initialsOf(m.user.name)}</div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700 }}>{m.user.name}</span>
+                          {(m.user.role === "TEACHER" || m.user.role === "ADMIN") && (
+                            <span style={roleBadge}>{m.user.role === "ADMIN" ? "Admin" : "Teacher"}</span>
+                          )}
+                          <span style={{ fontSize: 11, opacity: 0.5 }}>{timeOf(m.createdAt)}</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 2, lineHeight: 1.45, wordBreak: "break-word" }}>
+                          {m.body}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-              <div style={{ padding: 10, borderTop: "1px solid rgba(255,255,255,0.08)", display:"flex", gap: 8 }}>
-                <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Send a message…" style={{ flex: 1, padding: "9px 12px", borderRadius: 10, background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.12)", color:"white", fontFamily:"inherit", fontSize: 13, outline:"none" }}/>
-                <button className="btn btn-primary btn-sm" style={{ borderRadius: 10 }}><Icon name="send" size={14}/></button>
-              </div>
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  void sendMessage();
+                }}
+                style={chatInputRow}
+              >
+                <input
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  placeholder="Send a message…"
+                  maxLength={2000}
+                  style={chatInputStyle}
+                />
+                <button type="submit" disabled={sending || !chatInput.trim()} style={{ ...primaryBtn, padding: "8px 14px" }}>
+                  Send
+                </button>
+              </form>
             </>
           )}
 
           {tab === "qa" && (
-            <div style={{ flex: 1, padding: 14, overflowY:"auto", display:"flex", flexDirection:"column", gap: 12 }}>
-              <div style={{ fontSize: 11, opacity: 0.6, textTransform:"uppercase", letterSpacing:".1em" }}>Hands raised · in order</div>
-              {[
-                { name: "Bilal Hossain", q: "How does this verse relate to youth today?", up: 12, picked: false },
-                { name: "Hamza Adel", q: "Was the cave a real place?", up: 7, picked: false },
-                { name: "Maryam Yusuf", q: "Difference between fitna and ibtilāʾ?", up: 24, picked: true },
-              ].map((q, i) => (
-                <div key={i} style={{ padding: 12, background: q.picked ? "rgba(245,180,80,0.12)" : "rgba(255,255,255,0.05)", border:"1px solid " + (q.picked ? "oklch(0.74 0.16 70 / 0.5)" : "rgba(255,255,255,0.08)"), borderRadius: 12 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap: 8 }}>
-                    <Avatar name={q.name} size={24}/>
-                    <span style={{ fontSize: 12, fontWeight: 600 }}>{q.name.split(" ")[0]}</span>
-                    {q.picked && <span className="chip" style={{ background:"oklch(0.74 0.16 70)", color:"white", borderColor:"transparent", padding:"1px 8px", fontSize: 10 }}>Picked</span>}
-                    <span style={{ flex: 1 }}/>
-                    <span style={{ fontSize: 11, opacity: 0.7 }}>▲ {q.up}</span>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <div style={{ flex: 1, padding: 14, overflowY: "auto" }}>
+                {hands.length === 0 ? (
+                  <div style={{ fontSize: 13, opacity: 0.5, textAlign: "center", marginTop: 24 }}>
+                    No hands raised.
                   </div>
-                  <div style={{ fontSize: 13, marginTop: 8, lineHeight: 1.45 }}>{q.q}</div>
-                </div>
-              ))}
+                ) : (
+                  hands.map((h, idx) => (
+                    <div key={h.id} style={handRow(idx === 0)}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={avatarStyle}>{initialsOf(h.user.name)}</div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>{h.user.name}</div>
+                          <div style={{ fontSize: 10, opacity: 0.55 }}>raised {timeOf(h.raisedAt)}</div>
+                        </div>
+                        {(isMod || h.user.id === session?.user?.id) && (
+                          <button onClick={() => lowerHand(h.id)} style={ghostBtn}>Lower</button>
+                        )}
+                      </div>
+                      {h.question && (
+                        <div style={{ fontSize: 13, marginTop: 8, lineHeight: 1.45, color: "rgba(255,255,255,0.9)" }}>
+                          {h.question}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+              <div style={{ padding: 10, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: 8 }}>
+                <textarea
+                  value={questionDraft}
+                  onChange={e => setQuestionDraft(e.target.value)}
+                  placeholder="Optional: type your question…"
+                  rows={2}
+                  maxLength={500}
+                  style={{ ...chatInputStyle, resize: "vertical" }}
+                />
+                <button
+                  onClick={() => void raiseHand()}
+                  style={{ ...primaryBtn, background: myHandUp ? "#f5b450" : undefined, color: myHandUp ? "#111" : "white" }}
+                >
+                  ✋ {myHandUp ? "Update raised hand" : "Raise hand"}
+                </button>
+              </div>
             </div>
           )}
 
           {tab === "people" && (
-            <div style={{ flex: 1, padding: 14, overflowY:"auto", display:"flex", flexDirection:"column", gap: 6 }}>
-              {participants.map((p, i) => (
-                <div key={i} style={{ display:"flex", alignItems:"center", gap: 10, padding: "8px 10px", borderRadius: 10, background:"rgba(255,255,255,0.04)" }}>
-                  <Avatar name={p.name} size={28}/>
+            <div style={{ flex: 1, padding: 14, overflowY: "auto" }}>
+              {participants.map(p => (
+                <div key={p.id} style={peopleRow}>
+                  <div style={avatarStyle}>{initialsOf(p.name)}</div>
                   <span style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</span>
-                  {p.role === "teacher" && <span className="chip" style={{ background:"oklch(0.55 0.13 162)", color:"white", borderColor:"transparent", padding:"1px 6px", fontSize: 10 }}>Teacher</span>}
-                  {p.hand && <span style={{ marginLeft: "auto", fontSize: 14 }}>✋</span>}
+                  {(p.role === "TEACHER" || p.role === "ADMIN") && (
+                    <span style={{ ...roleBadge, marginLeft: 4 }}>{p.role === "ADMIN" ? "Admin" : "Teacher"}</span>
+                  )}
+                  {hands.some(h => h.user.id === p.id) && (
+                    <span style={{ marginLeft: "auto", fontSize: 14 }}>✋</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -218,4 +508,170 @@ const ClassroomClient = () => {
     </div>
   );
 };
+
+const containerStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "100vh",
+  background: "#0e1411",
+};
+
+const topBar: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  padding: "10px 16px",
+  background: "rgba(0,0,0,0.7)",
+  backdropFilter: "blur(8px)",
+  borderBottom: "1px solid rgba(255,255,255,0.06)",
+  flexShrink: 0,
+};
+
+const iconBtn: React.CSSProperties = {
+  background: "transparent",
+  border: "none",
+  color: "rgba(255,255,255,0.75)",
+  cursor: "pointer",
+  fontSize: 20,
+  lineHeight: 1,
+};
+
+const liveBadge: React.CSSProperties = {
+  background: "#e53e3e",
+  color: "white",
+  fontSize: 11,
+  fontWeight: 800,
+  padding: "3px 8px",
+  borderRadius: 999,
+  letterSpacing: "0.06em",
+};
+
+const primaryBtn: React.CSSProperties = {
+  background: "oklch(0.55 0.13 162)",
+  border: "none",
+  color: "white",
+  padding: "8px 16px",
+  borderRadius: 10,
+  fontWeight: 600,
+  fontSize: 13,
+  cursor: "pointer",
+};
+
+const secondaryBtn: React.CSSProperties = {
+  background: "rgba(255,255,255,0.10)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  color: "white",
+  padding: "8px 16px",
+  borderRadius: 10,
+  fontWeight: 600,
+  fontSize: 13,
+  cursor: "pointer",
+};
+
+const ghostBtn: React.CSSProperties = {
+  background: "transparent",
+  border: "1px solid rgba(255,255,255,0.18)",
+  color: "rgba(255,255,255,0.8)",
+  padding: "4px 10px",
+  borderRadius: 8,
+  fontSize: 11,
+  cursor: "pointer",
+};
+
+const rightRail: React.CSSProperties = {
+  borderLeft: "1px solid rgba(255,255,255,0.08)",
+  background: "rgba(0,0,0,0.35)",
+  display: "flex",
+  flexDirection: "column",
+  minHeight: 0,
+};
+
+const tabsRow: React.CSSProperties = {
+  display: "flex",
+  padding: 6,
+  gap: 4,
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+  flexShrink: 0,
+};
+
+const tabBtn = (active: boolean): React.CSSProperties => ({
+  flex: 1,
+  background: active ? "rgba(255,255,255,0.10)" : "transparent",
+  color: active ? "white" : "rgba(255,255,255,0.6)",
+  border: "none",
+  borderRadius: 10,
+  padding: "8px 10px",
+  fontSize: 12,
+  fontWeight: 600,
+  cursor: "pointer",
+});
+
+const chatScroll: React.CSSProperties = {
+  flex: 1,
+  padding: 14,
+  overflowY: "auto",
+};
+
+const chatInputRow: React.CSSProperties = {
+  padding: 10,
+  borderTop: "1px solid rgba(255,255,255,0.08)",
+  display: "flex",
+  gap: 8,
+  flexShrink: 0,
+};
+
+const chatInputStyle: React.CSSProperties = {
+  flex: 1,
+  padding: "9px 12px",
+  borderRadius: 10,
+  background: "rgba(255,255,255,0.08)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "white",
+  fontFamily: "inherit",
+  fontSize: 13,
+  outline: "none",
+};
+
+const avatarStyle: React.CSSProperties = {
+  width: 32,
+  height: 32,
+  flexShrink: 0,
+  borderRadius: 999,
+  background: "linear-gradient(135deg, oklch(0.55 0.13 162), oklch(0.30 0.08 165))",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 12,
+  fontWeight: 700,
+  color: "white",
+};
+
+const roleBadge: React.CSSProperties = {
+  background: "oklch(0.55 0.13 162)",
+  color: "white",
+  fontSize: 10,
+  fontWeight: 700,
+  padding: "1px 6px",
+  borderRadius: 6,
+};
+
+const handRow = (top: boolean): React.CSSProperties => ({
+  padding: 12,
+  marginBottom: 10,
+  background: top ? "rgba(245,180,80,0.12)" : "rgba(255,255,255,0.05)",
+  border: "1px solid " + (top ? "rgba(245,180,80,0.5)" : "rgba(255,255,255,0.08)"),
+  borderRadius: 12,
+});
+
+const peopleRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  padding: "8px 10px",
+  borderRadius: 10,
+  background: "rgba(255,255,255,0.04)",
+  marginBottom: 6,
+};
+
 export default ClassroomClient;

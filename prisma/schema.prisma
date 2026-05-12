@@ -121,6 +121,8 @@ model User {
   passwordResets     PasswordResetToken[]
   auditEvents        AuditLog[]             @relation("AuditActor")
   lessonComments     LessonComment[]
+  liveMessages       LiveMessage[]
+  raisedHands        RaisedHand[]
 
   // User-chosen profile du'a (key into preset list). Null = default.
   duaKey String?
@@ -343,8 +345,38 @@ model ClassSession {
   course   Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
   createdById String
-  createdBy   User       @relation("ClassCreatedBy", fields: [createdById], references: [id])
+  createdBy   User           @relation("ClassCreatedBy", fields: [createdById], references: [id])
   recordings  Recording[]
+  messages    LiveMessage[]
+  raisedHands RaisedHand[]
+}
+
+model LiveMessage {
+  id             String   @id @default(cuid())
+  classSessionId String
+  userId         String
+  body           String
+  createdAt      DateTime @default(now())
+
+  classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([classSessionId, createdAt])
+}
+
+model RaisedHand {
+  id             String   @id @default(cuid())
+  classSessionId String
+  userId         String
+  raisedAt       DateTime @default(now())
+  loweredAt      DateTime?
+  question       String?
+
+  classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([classSessionId, userId])
+  @@index([classSessionId, loweredAt])
 }
 
 model Lesson {

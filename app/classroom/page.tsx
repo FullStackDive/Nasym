@@ -1,5 +1,5 @@
-import ClassroomClient from "@/components/classroom-client";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <ClassroomClient />;
+  redirect("/classes");
 }
