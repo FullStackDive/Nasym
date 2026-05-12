@@ -287,11 +287,8 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
 
   const setLive = useCallback(
     async (live: boolean) => {
-      if (!classSession?.courseId) {
-        setError("This session has no course attached — cannot toggle live state from here.");
-        return;
-      }
-      const res = await fetch(`/api/courses/${classSession.courseId}/sessions/${classSession.id}`, {
+      if (!classSession) return;
+      const res = await fetch(`/api/live/${classSession.roomName}/state`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isLive: live }),
@@ -359,7 +356,7 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
           <span style={liveBadge}>● LIVE</span>
         )}
         <div style={{ flex: 1 }} />
-        {isMod && classSession.courseId && (
+        {isMod && (
           classSession.isLive ? (
             <button onClick={() => setLive(false)} style={secondaryBtn}>End live</button>
           ) : (
