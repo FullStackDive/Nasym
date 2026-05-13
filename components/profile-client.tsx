@@ -257,8 +257,14 @@ const EditProfileModal = ({ profile, onClose, onSaved }: { profile: Profile; onC
       setError(d.error ?? "Could not save");
       return;
     }
-    // Refresh next-auth JWT so AppBar avatar + dashboard greeting pick up new name.
+    // Refresh next-auth JWT cookie with the new name, then hard-reload so every
+    // AppBar/avatar instance re-reads session from the fresh JWT. The in-tab
+    // broadcast from update() alone does not always re-render every component.
     await update({ name: trimmed });
+    if (typeof window !== "undefined") {
+      window.location.reload();
+      return;
+    }
     onSaved();
   }
 
