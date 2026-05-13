@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge, Button, Card, Input } from "@/components/ui";
 
 type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
+const ROLES: Role[] = ["ADMIN", "TEACHER", "STUDENT", "PARENT"];
 type Status = "PENDING_APPROVAL" | "ACTIVE" | "SUSPENDED" | "BANNED" | "REJECTED";
 
 type UserRow = {
@@ -61,6 +62,25 @@ export default function AdminUsersClient() {
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
       setErr(d?.error ?? "Approve failed");
+      return;
+    }
+    void refresh();
+  }
+
+  async function changeRole(u: UserRow, role: Role) {
+    if (role === u.role) return;
+    if (!confirm(`Change ${u.email} role from ${u.role} to ${role}?`)) return;
+    setBusyId(u.id);
+    setErr(null);
+    const res = await fetch(`/api/admin/users/${u.id}/role`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    });
+    setBusyId(null);
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setErr(d?.error ?? "Role change failed");
       return;
     }
     void refresh();
@@ -225,11 +245,22 @@ export default function AdminUsersClient() {
                   <p className="mt-2 text-sm text-slate-700">Reason: {u.statusReason}</p>
                 ) : null}
 
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Button variant="secondary" onClick={() => pickForStatus(u)}>Manage status</Button>
                   <Link href={`/admin/users/${u.id}/permissions`}>
                     <Button variant="secondary">Permissions</Button>
                   </Link>
+                  <label className="ml-auto inline-flex items-center gap-2 text-xs text-slate-500">
+                    Role:
+                    <select
+                      value={u.role}
+                      disabled={busyId === u.id}
+                      onChange={(e) => changeRole(u, e.target.value as Role)}
+                      className="rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs"
+                    >
+                      {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </label>
                 </div>
               </div>
             ))}
