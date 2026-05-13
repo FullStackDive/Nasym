@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon, LogoMark, AppBar } from "./ui";
 import { Breeze, KhatamPattern, LeafSprig } from "./motifs";
 import { SOCIAL_LINKS, ENROLMENT_FORM_URL } from "@/lib/site";
+import { ayahOfTheDay } from "@/lib/ayahs";
 
 type UpcomingClass = {
   id: string;
@@ -31,12 +32,6 @@ type BlogPost = {
   author: { id: string; name: string };
 };
 
-const ayah = {
-  arabic: "وَقُل رَّبِّ زِدْنِي عِلْمًا",
-  translit: "Wa qul rabbi zidnī ʿilmā",
-  meaning: "“My Lord, increase me in knowledge.”",
-  ref: "Sūrah Ṭā Hā · 20:114",
-};
 
 function fmtWhen(iso: string) {
   const d = new Date(iso);
@@ -64,6 +59,8 @@ export default function HomeClient() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  // Recompute on mount; rotates once per local calendar day.
+  const [ayah] = useState(() => ayahOfTheDay());
 
   useEffect(() => {
     let cancelled = false;
@@ -135,9 +132,8 @@ export default function HomeClient() {
                   <p className="serif" style={{ fontStyle: "italic", color: "var(--ink-3)", fontSize: 16, margin: 0, fontWeight: 500 }}>{ayah.translit}</p>
                   <p className="serif" style={{ marginTop: 16, fontSize: 22, color: "var(--ink)", lineHeight: 1.4, fontWeight: 500 }}>{ayah.meaning}</p>
                   <hr className="divider" style={{ margin: "24px 0" }} />
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
                     <span style={{ fontSize: 12, color: "var(--ink-3)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>{ayah.ref}</span>
-                    <button className="btn btn-mint btn-sm" onClick={() => router.push("/reminders")}>Listen <Icon name="play" size={12} /></button>
                   </div>
                 </div>
               </div>
