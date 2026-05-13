@@ -95,8 +95,21 @@ const DashboardClient = () => {
 
   const userName = session?.user?.name ?? "friend";
   const firstName = userName.split(" ")[0];
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const isAdmin = userRole === "ADMIN";
   const lessonsCompleted = progress.length;
   const habitsDone = DEFAULT_HABITS.filter(h => habits[h.id]).length;
+
+  const adminQuickLinks: [string, string, "users" | "video" | "book" | "newspaper" | "check" | "trend" | "shield"][] = [
+    ["/admin", "Admin overview", "shield"],
+    ["/admin/users", "Users", "users"],
+    ["/admin/classes", "Classes", "video"],
+    ["/admin/lessons", "Lessons", "book"],
+    ["/admin/quizzes", "Quizzes", "check"],
+    ["/admin/news", "News", "newspaper"],
+    ["/admin/reports", "Reports", "newspaper"],
+    ["/admin/analytics", "Analytics", "trend"],
+  ];
 
   return (
     <div className="app">
@@ -116,6 +129,63 @@ const DashboardClient = () => {
               <button className="btn btn-primary" onClick={() => router.push("/courses")}><Icon name="book" size={14}/> My courses</button>
             </div>
           </div>
+
+          {isAdmin && (
+            <div style={{
+              position: "relative",
+              overflow: "hidden",
+              padding: 22,
+              marginBottom: 24,
+              borderRadius: 18,
+              background: "linear-gradient(135deg, var(--brand-800), var(--brand-900))",
+              color: "white",
+              border: "1px solid var(--brand-700)",
+            }}>
+              <KhatamPattern opacity={0.06} color="white" />
+              <div style={{ position: "relative", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+                  <span style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(255,255,255,0.14)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="shield" size={22} />
+                  </span>
+                  <div>
+                    <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.75, fontWeight: 700 }}>Admin</div>
+                    <div className="serif" style={{ fontSize: 22, fontWeight: 500, marginTop: 2 }}>Manage the platform</div>
+                    <div style={{ fontSize: 13, opacity: 0.78, marginTop: 4 }}>Users, content, classes, quizzes, reports & analytics.</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push("/admin")}
+                  className="btn"
+                  style={{ background: "white", color: "var(--brand-800)", fontWeight: 700 }}
+                >
+                  Open admin panel <Icon name="arrow-right" size={14} />
+                </button>
+              </div>
+              <div style={{ position: "relative", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
+                {adminQuickLinks.slice(1).map(([href, label, icon]) => (
+                  <button
+                    key={href}
+                    onClick={() => router.push(href)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "7px 12px",
+                      borderRadius: 999,
+                      background: "rgba(255,255,255,0.12)",
+                      color: "white",
+                      border: "1px solid rgba(255,255,255,0.18)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Icon name={icon} size={13} /> {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
             <Stat label="Lessons watched" value={lessonsCompleted} icon="book" />

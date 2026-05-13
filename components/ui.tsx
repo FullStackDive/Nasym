@@ -137,6 +137,8 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
   const sessionName = (session?.user?.name ?? "").trim();
   const displayName = userName ?? (sessionName || null);
   const authed = status === "authenticated";
+  const sessionRole = (session?.user as { role?: string } | undefined)?.role;
+  const isAdmin = sessionRole === "ADMIN";
   const [drawerOpen, setDrawerOpen] = useState(false);
   const items: [string, string][] = role === "ADMIN"
     ? [["overview", "Overview"], ["users", "Users"], ["content", "Content"], ["analytics", "Analytics"], ["reports", "Reports"]]
@@ -179,6 +181,29 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
           </div>
         )}
         <NotificationBell />
+        {authed && isAdmin && role !== "ADMIN" && (
+          <button
+            onClick={() => router.push("/admin")}
+            className="appbar-admin-pill"
+            title="Open admin panel"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 14px",
+              borderRadius: 999,
+              border: "1px solid var(--brand-700)",
+              background: "var(--brand-700)",
+              color: "white",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              letterSpacing: "0.04em",
+            }}
+          >
+            <Icon name="shield" size={12} /> Admin
+          </button>
+        )}
         {authed && displayName ? (
           <span style={{ cursor: "pointer" }} onClick={() => router.push("/profile")} title={displayName}>
             <Avatar name={displayName} size={36} />
