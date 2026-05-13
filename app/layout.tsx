@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   description: "An Islamic learning app for the youth: live classes, news, reminders, and a safe community."
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover" as const,
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="coastal" suppressHydrationWarning>

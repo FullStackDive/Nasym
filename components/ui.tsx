@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import NotificationBell from "./notification-bell";
@@ -137,6 +137,7 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
   const sessionName = (session?.user?.name ?? "").trim();
   const displayName = userName ?? (sessionName || null);
   const authed = status === "authenticated";
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const items: [string, string][] = role === "ADMIN"
     ? [["overview", "Overview"], ["users", "Users"], ["content", "Content"], ["analytics", "Analytics"], ["reports", "Reports"]]
     : [["home", "Home"], ["dashboard", "Dashboard"], ["classes", "Classes"], ["lessons", "Lessons"], ["news", "News"]];
@@ -146,50 +147,117 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
       router.push(STUDENT_ROUTES[k]);
     }
     onNav?.(k);
+    setDrawerOpen(false);
   };
 
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [drawerOpen]);
+
   return (
-    <div className="appbar">
-      <span style={{ cursor: "pointer" }} onClick={() => router.push(role === "ADMIN" ? "/admin" : "/")}>
-        <Logo />
-      </span>
-      <nav style={{ marginLeft: 12 }}>
-        {items.map(([k, label]) => (
-          <a key={k} className={active === k ? "active" : ""} style={{ cursor: "pointer" }} onClick={() => handleNav(k)}>{label}</a>
-        ))}
-      </nav>
-      <div style={{ flex: 1 }} />
-      {showSearch && (
-        <div style={{ position: "relative", width: 300 }}>
-          <span style={{ position: "absolute", left: 14, top: 11, color: "var(--ink-3)" }}><Icon name="search" size={16} /></span>
-          <input className="input" placeholder="Search lessons, ayāt, classes…" style={{ paddingLeft: 38, height: 40, borderRadius: 999 }} />
-          <span style={{ position: "absolute", right: 8, top: 9, display: "flex", gap: 4 }}>
-            <span className="kbd">⌘K</span>
+    <>
+      <div className="appbar">
+        <span style={{ cursor: "pointer" }} onClick={() => router.push(role === "ADMIN" ? "/admin" : "/")}>
+          <Logo />
+        </span>
+        <nav style={{ marginLeft: 12 }}>
+          {items.map(([k, label]) => (
+            <a key={k} className={active === k ? "active" : ""} style={{ cursor: "pointer" }} onClick={() => handleNav(k)}>{label}</a>
+          ))}
+        </nav>
+        <div style={{ flex: 1 }} />
+        {showSearch && (
+          <div className="appbar-search" style={{ position: "relative", width: 300 }}>
+            <span style={{ position: "absolute", left: 14, top: 11, color: "var(--ink-3)" }}><Icon name="search" size={16} /></span>
+            <input className="input" placeholder="Search lessons, ayāt, classes…" style={{ paddingLeft: 38, height: 40, borderRadius: 999 }} />
+            <span style={{ position: "absolute", right: 8, top: 9, display: "flex", gap: 4 }}>
+              <span className="kbd">⌘K</span>
+            </span>
+          </div>
+        )}
+        <NotificationBell />
+        {authed && displayName ? (
+          <span style={{ cursor: "pointer" }} onClick={() => router.push("/profile")} title={displayName}>
+            <Avatar name={displayName} size={36} />
           </span>
-        </div>
-      )}
-      <NotificationBell />
-      {authed && displayName ? (
-        <span style={{ cursor: "pointer" }} onClick={() => router.push("/profile")} title={displayName}>
-          <Avatar name={displayName} size={36} />
-        </span>
-      ) : (
-        <span
-          style={{
-            cursor: "pointer",
-            width: 36, height: 36, borderRadius: 999,
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            background: "var(--bg-soft)", border: "1px solid var(--hairline)", color: "var(--ink-3)",
-          }}
-          onClick={() => router.push("/auth/signin")}
-          title="Sign in"
+        ) : (
+          <span
+            style={{
+              cursor: "pointer",
+              width: 36, height: 36, borderRadius: 999,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              background: "var(--bg-soft)", border: "1px solid var(--hairline)", color: "var(--ink-3)",
+            }}
+            onClick={() => router.push("/auth/signin")}
+            title="Sign in"
+          >
+            <Icon name="user" size={18} />
+          </span>
+        )}
+        <button
+          aria-label="Open menu"
+          className="mobile-nav-btn"
+          onClick={() => setDrawerOpen(true)}
         >
-          <Icon name="user" size={18} />
-        </span>
+          <MenuIcon />
+        </button>
+      </div>
+
+      {drawerOpen && (
+        <>
+          <div className="mobile-drawer-overlay" onClick={() => setDrawerOpen(false)} />
+          <aside className="mobile-drawer" role="dialog" aria-modal="true">
+            <div className="drawer-head">
+              <Logo size={32} />
+              <button
+                aria-label="Close menu"
+                onClick={() => setDrawerOpen(false)}
+                style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: "var(--bg-soft)", border: "1px solid var(--hairline)",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  color: "var(--ink)", cursor: "pointer",
+                }}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            {showSearch && (
+              <div className="drawer-search" style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 14, top: 11, color: "var(--ink-3)" }}><Icon name="search" size={16} /></span>
+                <input className="input" placeholder="Search…" style={{ paddingLeft: 38, height: 40, borderRadius: 12 }} />
+              </div>
+            )}
+            {items.map(([k, label]) => (
+              <a key={k} className={active === k ? "active" : ""} onClick={() => handleNav(k)}>{label}</a>
+            ))}
+            <div style={{ height: 1, background: "var(--hairline)", margin: "10px 4px" }} />
+            {authed && displayName ? (
+              <a onClick={() => { router.push("/profile"); setDrawerOpen(false); }}>Profile · {displayName}</a>
+            ) : (
+              <a onClick={() => { router.push("/auth/signin"); setDrawerOpen(false); }}>Sign in</a>
+            )}
+          </aside>
+        </>
       )}
-    </div>
+    </>
   );
 };
+
+const MenuIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M6 6l12 12M6 18L18 6" />
+  </svg>
+);
 
 /* ===== Stat card ===== */
 interface StatProps { label: string; value: ReactNode; sub?: string; accent?: string; icon?: IconName; }

@@ -100,13 +100,13 @@ export default function HomeClient() {
           <Breeze opacity={0.35} color="var(--c-mid)" />
           <div style={{ position: "absolute", top: -80, right: -80, width: 360, height: 360, borderRadius: "50%", background: "radial-gradient(circle, color-mix(in oklch, var(--accent-500) 22%, transparent), transparent 70%)" }} />
 
-          <div style={{ position: "relative", maxWidth: 1180, margin: "0 auto", padding: "88px 32px 80px", display: "grid", gridTemplateColumns: "1.15fr .85fr", gap: 64, alignItems: "center" }}>
+          <div className="responsive-grid" style={{ position: "relative", maxWidth: 1180, margin: "0 auto", padding: "88px 32px 80px", display: "grid", gridTemplateColumns: "1.15fr .85fr", gap: 64, alignItems: "center" }}>
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "6px 14px 6px 6px", borderRadius: 999, background: "var(--surface)", border: "1px solid var(--hairline)", marginBottom: 26 }}>
                 <span style={{ width: 24, height: 24, borderRadius: 999, background: "var(--brand-700)", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="wind" size={13} /></span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-2)", letterSpacing: "0.02em" }}>nasym · the gentle breeze of mercy</span>
               </div>
-              <h1 className="serif" style={{ fontSize: 76, fontWeight: 500, letterSpacing: "-0.025em", lineHeight: 1.0, margin: "8px 0 0", color: "var(--ink)" }}>
+              <h1 className="serif hero-title" style={{ fontSize: 76, fontWeight: 500, letterSpacing: "-0.025em", lineHeight: 1.0, margin: "8px 0 0", color: "var(--ink)" }}>
                 Where the breeze<br />
                 of <em style={{ color: "var(--brand-700)", fontStyle: "italic" }}>raḥmah</em> reaches<br />
                 the <em style={{ color: "var(--accent-600)", fontStyle: "italic" }}>young heart</em>.
@@ -124,7 +124,7 @@ export default function HomeClient() {
             </div>
 
             <div style={{ position: "relative", padding: 4, borderRadius: 28, background: "linear-gradient(160deg, var(--mint-300), var(--accent-300))", boxShadow: "var(--shadow-3)" }}>
-              <div style={{ background: "var(--surface)", borderRadius: 24, padding: 36, position: "relative", overflow: "hidden" }}>
+              <div className="hero-card-pad" style={{ background: "var(--surface)", borderRadius: 24, padding: 36, position: "relative", overflow: "hidden" }}>
                 <KhatamPattern opacity={0.05} color="var(--brand-700)" />
                 <div style={{ position: "absolute", top: 22, right: 22, opacity: 0.4 }}><LeafSprig size={36} /></div>
                 <div style={{ position: "relative" }}>
@@ -161,7 +161,7 @@ export default function HomeClient() {
               No upcoming live classes scheduled. Check the <a onClick={() => router.push("/courses")} style={{ color: "var(--brand-700)", cursor: "pointer" }}>courses page</a> for recorded series.
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+            <div className="responsive-grid grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
               {upcoming.slice(0, 3).map((c, i) => (
                 <div key={c.id} className="card" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
                   <div style={{ height: 148, position: "relative", background: i === 0 ? "linear-gradient(135deg, var(--brand-700), var(--brand-900))" : i === 1 ? "linear-gradient(135deg, var(--c-mid), var(--brand-700))" : "linear-gradient(135deg, var(--accent-500), var(--accent-600))" }}>
@@ -184,7 +184,7 @@ export default function HomeClient() {
         </section>
 
         <section style={{ maxWidth: 1180, margin: "0 auto", padding: "56px 32px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.25fr .85fr", gap: 36 }}>
+          <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1.25fr .85fr", gap: 36 }}>
             <div>
               <div className="eyebrow">Daily on the journal</div>
               <h2 className="serif" style={{ fontSize: 36, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 22px" }}>Reflections</h2>
@@ -245,7 +245,7 @@ export default function HomeClient() {
         <section style={{ background: "var(--brand-900)", color: "var(--surface)", padding: "56px 32px", position: "relative", overflow: "hidden" }}>
           <Breeze opacity={0.18} color="var(--mint-300)" />
           <div style={{ position: "relative", maxWidth: 1180, margin: "0 auto" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 40 }}>
+            <div className="footer-grid" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 40 }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}><LogoMark size={32} /></span>
