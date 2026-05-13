@@ -37,6 +37,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ roomNam
     if (await isCourseEnrolled(userId, classSession.courseId)) {
       return NextResponse.json({ session: classSession });
     }
+  } else {
+    // No courseId → open to any logged-in user.
+    return NextResponse.json({ session: classSession });
   }
 
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });

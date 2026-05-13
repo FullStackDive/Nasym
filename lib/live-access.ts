@@ -42,15 +42,19 @@ export async function resolveRoomAccess(
   let allowed = role === "ADMIN" || isCreator;
   let isMod = role === "ADMIN" || role === "TEACHER" || isCreator;
 
-  if (!allowed && cs.courseId) {
-    if (role === "TEACHER" && (await isCourseTeacher(userId, cs.courseId))) {
-      allowed = true;
-      isMod = true;
-    } else if (await isCourseEnrolled(userId, cs.courseId)) {
+  if (!allowed) {
+    if (cs.courseId) {
+      if (role === "TEACHER" && (await isCourseTeacher(userId, cs.courseId))) {
+        allowed = true;
+        isMod = true;
+      } else if (await isCourseEnrolled(userId, cs.courseId)) {
+        allowed = true;
+      }
+    } else {
+      // No courseId → open to any logged-in user (public/admin-created session).
       allowed = true;
     }
   }
-  // If no courseId — only admin/creator allowed (already handled).
 
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
