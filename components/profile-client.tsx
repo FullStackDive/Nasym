@@ -234,6 +234,7 @@ const Modal = ({ title, onClose, children }: { title: string; onClose: () => voi
 );
 
 const EditProfileModal = ({ profile, onClose, onSaved }: { profile: Profile; onClose: () => void; onSaved: () => void }) => {
+  const { update } = useSession();
   const [name, setName] = useState(profile.name);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -241,13 +242,14 @@ const EditProfileModal = ({ profile, onClose, onSaved }: { profile: Profile; onC
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (name.trim().length < 2) { setError("Name must be at least 2 characters"); return; }
-    if (name === profile.name) { onClose(); return; }
+    const trimmed = name.trim();
+    if (trimmed.length < 2) { setError("Name must be at least 2 characters"); return; }
+    if (trimmed === profile.name) { onClose(); return; }
     setSaving(true);
     const res = await fetch("/api/me/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim() }),
+      body: JSON.stringify({ name: trimmed }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -255,6 +257,8 @@ const EditProfileModal = ({ profile, onClose, onSaved }: { profile: Profile; onC
       setError(d.error ?? "Could not save");
       return;
     }
+    // Refresh next-auth JWT so AppBar avatar + dashboard greeting pick up new name.
+    await update({ name: trimmed });
     onSaved();
   }
 

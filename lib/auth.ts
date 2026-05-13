@@ -90,13 +90,33 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
 
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session: updateSession }) {
       if (user) {
         // Credentials provider sets id directly; Google sets dbId
         token.uid = (user as any).dbId ?? (user as any).id;
         token.role = (user as any).role;
         token.status = (user as any).status;
+        token.name = user.name ?? token.name;
         token.provider = account?.provider ?? "credentials";
+      }
+
+      // Client called update() — re-pull fresh fields from the DB so display
+      // name / role propagate without requiring re-login.
+      if (trigger === "update" && token.uid) {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.uid as string },
+          select: { name: true, role: true, status: true },
+        });
+        if (fresh) {
+          token.name = fresh.name;
+          token.role = fresh.role;
+          token.status = fresh.status;
+        }
+        // If the caller passed a `session` object to update(), prefer its name.
+        const passedName = (updateSession as { name?: string } | undefined)?.name;
+        if (typeof passedName === "string" && passedName.trim()) {
+          token.name = passedName.trim();
+        }
       }
       return token;
     },
@@ -105,6 +125,7 @@ export const authOptions: NextAuthOptions = {
       (session as any).user.id = token.uid;
       (session as any).user.role = token.role;
       (session as any).user.status = token.status;
+      if (token.name) session.user.name = token.name as string;
       return session;
     },
   },
