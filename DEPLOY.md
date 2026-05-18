@@ -1,6 +1,7 @@
 # Deploying Nasym-Ur-Rahmah on a Free Stack
 
 Target stack (all free tiers):
+
 - **Hosting:** Vercel (Next.js native)
 - **Database:** Neon **or** Supabase Postgres (free 0.5 GB / 500 MB)
 - **File storage:** Vercel Blob (free 1 GB)
@@ -35,14 +36,14 @@ Target stack (all free tiers):
 2. https://vercel.com/new → import the repo.
 3. **Environment Variables** (Production + Preview + Development):
 
-   | Key | Value |
-   |---|---|
-   | `DATABASE_URL` | pooled Neon URL |
-   | `DATABASE_URL_UNPOOLED` | direct Neon URL |
-   | `NEXTAUTH_URL` | `https://<project>.vercel.app` |
-   | `NEXTAUTH_SECRET` | `openssl rand -base64 32` output |
-   | `NEXT_PUBLIC_JITSI_DOMAIN` | `meet.jit.si` |
-   | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | from Resend/Brevo |
+   | Key                                                                 | Value                            |
+   | ------------------------------------------------------------------- | -------------------------------- |
+   | `DATABASE_URL`                                                      | pooled Neon URL                  |
+   | `DATABASE_URL_UNPOOLED`                                             | direct Neon URL                  |
+   | `NEXTAUTH_URL`                                                      | `https://<project>.vercel.app`   |
+   | `NEXTAUTH_SECRET`                                                   | `openssl rand -base64 32` output |
+   | `NEXT_PUBLIC_JITSI_DOMAIN`                                          | `meet.jit.si`                    |
+   | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | from Resend/Brevo                |
 
 4. **Storage** → Create → **Blob**. This auto-injects `BLOB_READ_WRITE_TOKEN`.
 5. Deploy.
@@ -65,11 +66,13 @@ Default admin: `admin@example.com` / `Admin123!` — change immediately.
 ## 4. Email provider (free)
 
 **Resend** (recommended, 3 000/mo):
+
 - https://resend.com → API Keys → create
 - Verify a domain (or use the `@resend.dev` sandbox sender for testing)
 - SMTP creds: host `smtp.resend.com`, port `465`, user `resend`, pass `<api key>`
 
 **Brevo** (300/day):
+
 - https://brevo.com → SMTP & API → SMTP keys
 - host `smtp-relay.brevo.com`, port `587`
 

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireActiveUser } from "@/lib/server-session";
-import { userHasPermission, ALL_PERMISSION_KEYS } from "@/lib/permissions";
+import { userHasPermission, ALL_PERMISSION_KEYS, ALL_PAGE_KEYS } from "@/lib/permissions";
 import { z } from "zod";
 
 const schema = z.object({
-  permissionKeys: z.array(z.enum(ALL_PERMISSION_KEYS)).default([])
+  permissionKeys: z.array(z.enum(ALL_PERMISSION_KEYS)).default([]),
+  hiddenPages: z.array(z.enum(ALL_PAGE_KEYS)).default([]),
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -25,7 +26,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   return NextResponse.json({
     user: { id: user.id, role: user.role, email: user.email, name: user.name },
-    permissionKeys: perms.map((p) => p.permission.key)
+    permissionKeys: perms.map((p) => p.permission.key),
+    hiddenPages: user.hiddenPages ?? [],
   });
 }
 
@@ -49,6 +51,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   await prisma.userPermission.deleteMany({ where: { userId: id } });
   await prisma.userPermission.createMany({
     data: perms.map((p) => ({ userId: id, permissionId: p.id }))
+  });
+
+  await prisma.user.update({
+    where: { id },
+    data: { hiddenPages: parsed.data.hiddenPages },
   });
 
   return NextResponse.json({ ok: true });

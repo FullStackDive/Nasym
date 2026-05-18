@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Card } from "@/components/ui";
+import { AdminShell } from "@/components/admin-client";
 
 type Stat = {
   id: string;
@@ -30,13 +31,13 @@ export default function AdminAnalyticsClient() {
   }, []);
 
   return (
+    <AdminShell active="analytics">
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Quiz analytics</h1>
           <p className="mt-2 text-slate-600">Attempts, average scores, and engagement.</p>
         </div>
-        <Link href="/admin"><Button variant="secondary">Back</Button></Link>
       </div>
 
       {err && <Card className="mt-4 p-4 text-sm text-red-600">{err}</Card>}
@@ -78,5 +79,6 @@ export default function AdminAnalyticsClient() {
         ))}
       </div>
     </div>
+    </AdminShell>
   );
 }

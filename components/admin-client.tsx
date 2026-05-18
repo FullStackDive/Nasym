@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Icon, Avatar, AppBar, Stat } from "./ui";
 
@@ -28,21 +28,52 @@ const Sparkline = ({ data, color = "var(--brand-600)" }: { data: number[]; color
   );
 };
 
-const AdminShell = ({ active, onNav, children }: { active: string; onNav: (k: string) => void; children: ReactNode }) => {
+const ROUTE_KEYS: Record<string, string> = {
+  users: "/admin/users",
+  classes: "/admin/classes",
+  lessons: "/admin/lessons",
+  quizzes: "/admin/quizzes",
+  news: "/admin/news",
+  posters: "/admin/posters",
+  reports: "/admin/reports",
+  analytics: "/admin/analytics",
+};
+
+export const AdminShell = ({ active, onNav, children }: { active: string; onNav?: (k: string) => void; children: ReactNode }) => {
   const { data: session } = useSession();
+  const router = useRouter();
   const role = ((session?.user as { role?: string } | undefined)?.role ?? "ADMIN");
   const name = session?.user?.name ?? "Admin";
   const email = session?.user?.email ?? "";
+
+  const handle = (k: string) => {
+    if (onNav) { onNav(k); return; }
+    const route = ROUTE_KEYS[k];
+    if (route) router.push(route);
+    else if (k === "overview") router.push("/admin");
+    else router.push(`/admin?v=${encodeURIComponent(k)}`);
+  };
+
+  const appbarActiveMap: Record<string, string> = {
+    overview: "overview",
+    users: "users", approvals: "users", invitations: "users", perms: "users",
+    reports: "reports",
+    analytics: "analytics",
+    courses: "content", classes: "content", lessons: "content",
+    news: "content", posters: "content", quizzes: "content", ask: "content",
+  };
+  const appbarActive = appbarActiveMap[active] ?? "";
+
   return (
   <div className="app">
-    <AppBar active="" onNav={() => {}} role="ADMIN" showSearch={true} />
+    <AppBar active={appbarActive} role="ADMIN" showSearch={true} />
     <div style={{ display:"flex", minHeight: "calc(100vh - 72px)" }}>
       <div className="sidebar">
         {adminNav.map(g => (
           <div key={g.group}>
             <div className="group-label">{g.group}</div>
             {g.items.map(([k, label, icon]) => (
-              <a key={k} className={active === k ? "active" : ""} onClick={() => onNav?.(k)}>
+              <a key={k} className={active === k ? "active" : ""} onClick={() => handle(k)}>
                 <Icon name={icon} size={16}/> {label}
               </a>
             ))}
@@ -59,17 +90,6 @@ const AdminShell = ({ active, onNav, children }: { active: string; onNav: (k: st
     </div>
   </div>
   );
-};
-
-const ROUTE_KEYS: Record<string, string> = {
-  users: "/admin/users",
-  classes: "/admin/classes",
-  lessons: "/admin/lessons",
-  quizzes: "/admin/quizzes",
-  news: "/admin/news",
-  posters: "/admin/posters",
-  reports: "/admin/reports",
-  analytics: "/admin/analytics",
 };
 
 type OverviewData = {
@@ -134,15 +154,34 @@ function deltaText(pct: number, neutral = "flat") {
   };
 }
 
+const VALID_VIEWS = new Set(["overview", "approvals", "invitations", "courses", "perms", "ask"]);
+
 const AdminClient = () => {
-  const [view, setView] = useState("overview");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialView = (() => {
+    const v = searchParams?.get("v") ?? "overview";
+    return VALID_VIEWS.has(v) ? v : "overview";
+  })();
+  const [view, setView] = useState(initialView);
+
+  useEffect(() => {
+    const v = searchParams?.get("v") ?? "overview";
+    setView(VALID_VIEWS.has(v) ? v : "overview");
+  }, [searchParams]);
+
   const { data: session } = useSession();
   const adminName = (session?.user?.name ?? "Admin").split(" ")[0];
 
   const handleNav = (k: string) => {
     const route = ROUTE_KEYS[k];
     if (route) { router.push(route); return; }
+    if (k === "overview") {
+      router.replace("/admin");
+      setView("overview");
+      return;
+    }
+    router.replace(`/admin?v=${encodeURIComponent(k)}`);
     setView(k);
   };
 
@@ -165,26 +204,35 @@ const AdminOverview = ({ adminName, onNav }: { adminName: string; onNav: (k: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setData(null);
     (async () => {
       try {
         const res = await fetch("/api/admin/overview", { cache: "no-store" });
-        const d = await res.json().catch(() => ({}));
+        const text = await res.text();
+        let d: { error?: string } & Record<string, unknown> = {};
+        try { d = text ? JSON.parse(text) : {}; } catch { /* non-JSON */ }
         if (cancelled) return;
         if (!res.ok) {
-          setError(d?.error ?? "Failed to load overview");
+          setError(d?.error ?? `Overview request failed (HTTP ${res.status}).`);
           return;
         }
-        setData(d as OverviewData);
-      } catch {
-        if (!cancelled) setError("Failed to load overview");
+        setData(d as unknown as OverviewData);
+      } catch (e) {
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : "network error";
+          setError(`Could not reach the server (${msg}). Is the dev server running?`);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadKey]);
 
   const greeting = useGreeting();
 
@@ -196,8 +244,9 @@ const AdminOverview = ({ adminName, onNav }: { adminName: string; onNav: (k: str
   if (error || !data) {
     return (
       <div style={{ padding: "32px 36px" }}>
-        <div className="surface" style={{ padding: 24, color: "var(--danger, #e53e3e)" }}>
-          {error ?? "Could not load overview"}
+        <div className="surface" style={{ padding: 24, color: "var(--danger, #e53e3e)", display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
+          <div>{error ?? "Could not load overview"}</div>
+          <button className="btn btn-secondary" onClick={() => setReloadKey(k => k + 1)}>Retry</button>
         </div>
       </div>
     );

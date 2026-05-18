@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge, Button, Card, Input } from "@/components/ui";
+import { AdminShell } from "@/components/admin-client";
 
 type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
 const ROLES: Role[] = ["ADMIN", "TEACHER", "STUDENT", "PARENT"];
@@ -160,13 +161,13 @@ export default function AdminUsersClient() {
   );
 
   return (
+    <AdminShell active="users">
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Users</h1>
           <p className="mt-2 text-slate-600">Approve registrations, manage status, set permissions.</p>
         </div>
-        <Link href="/admin"><Button variant="secondary">Back</Button></Link>
       </div>
 
       {err && <Card className="mt-4 p-4 text-sm text-red-600">{err}</Card>}
@@ -247,7 +248,7 @@ export default function AdminUsersClient() {
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Button variant="secondary" onClick={() => pickForStatus(u)}>Manage status</Button>
-                  <Link href={`/admin/users/${u.id}/permissions`}>
+                  <Link href={`/admin/users/${u.id}`}>
                     <Button variant="secondary">Permissions</Button>
                   </Link>
                   <label className="ml-auto inline-flex items-center gap-2 text-xs text-slate-500">
@@ -326,5 +327,6 @@ export default function AdminUsersClient() {
         </Card>
       </div>
     </div>
+    </AdminShell>
   );
 }

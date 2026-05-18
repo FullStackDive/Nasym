@@ -17,5 +17,10 @@ export async function GET(req: Request) {
     select: { id: true, title: true, description: true, videoUrl: true, tags: true, createdAt: true }
   });
 
-  return NextResponse.json({ lessons });
+  // Cache only the un-queried list; searches stay fresh.
+  const cacheHeader = q
+    ? "private, no-store"
+    : "public, max-age=60, s-maxage=180, stale-while-revalidate=600";
+
+  return NextResponse.json({ lessons }, { headers: { "Cache-Control": cacheHeader } });
 }

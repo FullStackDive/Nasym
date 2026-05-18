@@ -7,5 +7,8 @@ export async function GET() {
     take: 50,
     select: { id: true, title: true, description: true, scheduledAt: true, isLive: true }
   });
-  return NextResponse.json({ classes });
+  return NextResponse.json(
+    { classes },
+    { headers: { "Cache-Control": "public, max-age=20, s-maxage=60, stale-while-revalidate=300" } }
+  );
 }

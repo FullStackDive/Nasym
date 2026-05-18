@@ -40,7 +40,18 @@ export async function GET(req: Request) {
     prisma.blogPost.count({ where }),
   ]);
 
-  return NextResponse.json({ posts, total, page, pages: Math.ceil(total / limit) });
+  return NextResponse.json(
+    { posts, total, page, pages: Math.ceil(total / limit) },
+    {
+      headers: {
+        // Anon/student see the same published-only list — let CDN cache that.
+        // Admins/teachers must always get fresh data.
+        "Cache-Control": canSeeAll
+          ? "private, no-store"
+          : "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
+      },
+    }
+  );
 }
 
 // POST /api/blog — admin or teacher creates post

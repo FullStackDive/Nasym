@@ -13,6 +13,23 @@ export const ALL_PERMISSION_KEYS = [
 
 export type PermissionKey = typeof ALL_PERMISSION_KEYS[number];
 
+export const ALL_PAGE_KEYS = ["dashboard", "classes", "lessons", "news"] as const;
+export type PageKey = typeof ALL_PAGE_KEYS[number];
+
+export const PAGE_LABELS: Record<PageKey, string> = {
+  dashboard: "Dashboard",
+  classes: "Classes",
+  lessons: "Lessons",
+  news: "News",
+};
+
+export const PAGE_PATHS: Record<PageKey, string> = {
+  dashboard: "/dashboard",
+  classes: "/classes",
+  lessons: "/lessons",
+  news: "/news",
+};
+
 export async function userHasPermission(userId: string, role: Role, key: PermissionKey) {
   if (role === "ADMIN") return true;
   const perm = await prisma.permission.findUnique({ where: { key } });

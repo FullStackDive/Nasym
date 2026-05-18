@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Badge, Button, Card, Input, Textarea } from "@/components/ui";
+import { AdminShell } from "@/components/admin-client";
 
 type ClassSession = { id: string; title: string; description: string; scheduledAt: string; isLive: boolean; roomName: string };
 
@@ -82,13 +83,13 @@ export default function AdminClassesClient() {
   }
 
   return (
+    <AdminShell active="classes">
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Class sessions</h1>
           <p className="mt-2 text-slate-600">Create and manage live / scheduled classroom sessions (Jitsi rooms).</p>
         </div>
-        <Link href="/admin"><Button variant="secondary">Back</Button></Link>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -153,5 +154,6 @@ export default function AdminClassesClient() {
         </Card>
       </div>
     </div>
+    </AdminShell>
   );
 }

@@ -81,6 +81,7 @@ model User {
   approvedAt     DateTime?
   approvedById   String?
   createdAt      DateTime   @default(now())
+  hiddenPages    String[]   @default([])
 
   // Parent-child relation: a STUDENT has at most one PARENT;
   // a PARENT can have many STUDENT children (siblings).

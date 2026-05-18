@@ -53,7 +53,7 @@ export const authOptions: NextAuthOptions = {
         if (user.status === "PENDING_APPROVAL") throw new Error("ACCOUNT_PENDING_APPROVAL");
         if (user.status !== "ACTIVE") throw new Error(`ACCOUNT_${user.status}`);
 
-        return { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status } as any;
+        return { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status, hiddenPages: user.hiddenPages ?? [] } as any;
       },
     }),
   ],
@@ -86,6 +86,7 @@ export const authOptions: NextAuthOptions = {
         (user as any).dbId = dbUser.id;
         (user as any).role = dbUser.role;
         (user as any).status = dbUser.status;
+        (user as any).hiddenPages = dbUser.hiddenPages ?? [];
       }
       return true;
     },
@@ -96,6 +97,7 @@ export const authOptions: NextAuthOptions = {
         token.uid = (user as any).dbId ?? (user as any).id;
         token.role = (user as any).role;
         token.status = (user as any).status;
+        token.hiddenPages = (user as any).hiddenPages ?? [];
         token.name = user.name ?? token.name;
         token.provider = account?.provider ?? "credentials";
       }
@@ -105,12 +107,13 @@ export const authOptions: NextAuthOptions = {
       if (trigger === "update" && token.uid) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.uid as string },
-          select: { name: true, role: true, status: true },
+          select: { name: true, role: true, status: true, hiddenPages: true },
         });
         if (fresh) {
           token.name = fresh.name;
           token.role = fresh.role;
           token.status = fresh.status;
+          token.hiddenPages = fresh.hiddenPages ?? [];
         }
         // If the caller passed a `session` object to update(), prefer its name.
         const passedName = (updateSession as { name?: string } | undefined)?.name;
@@ -125,6 +128,7 @@ export const authOptions: NextAuthOptions = {
       (session as any).user.id = token.uid;
       (session as any).user.role = token.role;
       (session as any).user.status = token.status;
+      (session as any).user.hiddenPages = (token.hiddenPages as string[]) ?? [];
       if (token.name) session.user.name = token.name as string;
       return session;
     },

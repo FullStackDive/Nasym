@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Badge, Button, Card, Input, Textarea } from "@/components/ui";
+import { AdminShell } from "@/components/admin-client";
 
 type News = { id: string; title: string; body: string; pinned: boolean; createdAt: string };
 
@@ -67,13 +67,13 @@ export default function AdminNewsClient() {
   }
 
   return (
+    <AdminShell active="news">
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">News manager</h1>
           <p className="mt-2 text-slate-600">Create and manage announcements for students.</p>
         </div>
-        <Link href="/admin"><Button variant="secondary">Back</Button></Link>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -125,5 +125,6 @@ export default function AdminNewsClient() {
         </Card>
       </div>
     </div>
+    </AdminShell>
   );
 }

@@ -131,6 +131,14 @@ const STUDENT_ROUTES: Record<string, string> = {
   news: "/news",
 };
 
+const ADMIN_ROUTES: Record<string, string> = {
+  overview: "/admin",
+  users: "/admin/users",
+  content: "/admin/lessons",
+  analytics: "/admin/analytics",
+  reports: "/admin/reports",
+};
+
 export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, userName }: AppBarProps) => {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -140,13 +148,18 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
   const sessionRole = (session?.user as { role?: string } | undefined)?.role;
   const isAdmin = sessionRole === "ADMIN";
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const hiddenPages = ((session?.user as { hiddenPages?: string[] } | undefined)?.hiddenPages ?? []);
+  const studentItems: [string, string][] = [["home", "Home"], ["dashboard", "Dashboard"], ["classes", "Classes"], ["lessons", "Lessons"], ["news", "News"]]
+    .filter(([k]) => !hiddenPages.includes(k)) as [string, string][];
   const items: [string, string][] = role === "ADMIN"
     ? [["overview", "Overview"], ["users", "Users"], ["content", "Content"], ["analytics", "Analytics"], ["reports", "Reports"]]
-    : [["home", "Home"], ["dashboard", "Dashboard"], ["classes", "Classes"], ["lessons", "Lessons"], ["news", "News"]];
+    : studentItems;
 
   const handleNav = (k: string) => {
     if (role === "STUDENT" && STUDENT_ROUTES[k]) {
       router.push(STUDENT_ROUTES[k]);
+    } else if (role === "ADMIN" && ADMIN_ROUTES[k]) {
+      router.push(ADMIN_ROUTES[k]);
     }
     onNav?.(k);
     setDrawerOpen(false);

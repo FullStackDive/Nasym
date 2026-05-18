@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const revalidate = 120;
+
 export async function GET() {
   const courses = await prisma.course.findMany({
     where: { isPublished: true },
@@ -21,5 +23,8 @@ export async function GET() {
       _count: { select: { enrolments: true, modules: true, lessons: true } }
     }
   });
-  return NextResponse.json({ courses });
+  return NextResponse.json(
+    { courses },
+    { headers: { "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=600" } }
+  );
 }

@@ -22,10 +22,24 @@ function evictIfNeeded() {
   }
 }
 
-export function clientKey(req: Request, prefix: string): string {
+function ipFromReq(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
-  const ip = fwd ? fwd.split(",")[0].trim() : req.headers.get("x-real-ip") ?? "unknown";
-  return `${prefix}:${ip}`;
+  if (fwd) return fwd.split(",")[0].trim();
+  return req.headers.get("x-real-ip") ?? "unknown";
+}
+
+export function clientKey(req: Request, prefix: string): string {
+  return `${prefix}:${ipFromReq(req)}`;
+}
+
+/**
+ * Build a key that's IP-scoped for anon traffic and userId-scoped for
+ * authenticated traffic. Stops one shared NAT/VPN IP from starving everyone
+ * behind it while still throttling drive-by anon abuse.
+ */
+export function actorKey(req: Request, prefix: string, userId?: string | null): string {
+  if (userId) return `${prefix}:u:${userId}`;
+  return `${prefix}:ip:${ipFromReq(req)}`;
 }
 
 /**

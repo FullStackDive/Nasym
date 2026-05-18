@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { Button, Card, Input } from "@/components/ui";
+import { AdminShell } from "@/components/admin-client";
 
 type Poster = { id: string; title: string; imageUrl: string; ctaText?: string | null; ctaHref?: string | null; createdAt: string };
 
@@ -122,13 +122,13 @@ export default function AdminPostersClient() {
   const previewSrc = inputMode === "file" ? uploadPreview : (imageUrl || null);
 
   return (
+    <AdminShell active="posters">
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Poster manager</h1>
           <p className="mt-2 text-slate-600">Add and manage attractive posters for the home page.</p>
         </div>
-        <Link href="/admin"><Button variant="secondary">Back</Button></Link>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -236,5 +236,6 @@ export default function AdminPostersClient() {
         </Card>
       </div>
     </div>
+    </AdminShell>
   );
 }

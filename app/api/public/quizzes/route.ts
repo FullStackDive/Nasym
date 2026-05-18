@@ -22,5 +22,8 @@ export async function GET(req: Request) {
     }
   });
 
-  return NextResponse.json({ quizzes });
+  const cacheHeader = q
+    ? "private, no-store"
+    : "public, max-age=60, s-maxage=180, stale-while-revalidate=600";
+  return NextResponse.json({ quizzes }, { headers: { "Cache-Control": cacheHeader } });
 }

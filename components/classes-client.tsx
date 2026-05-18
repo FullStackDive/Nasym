@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Badge, Card } from "@/components/ui";
+import { AppBar, Badge, Card } from "@/components/ui";
 
 type ClassSession = { id: string; title: string; description: string; scheduledAt: string; isLive: boolean };
 
@@ -14,6 +14,7 @@ function formatDate(iso: string) {
 export default function ClassesClient() {
   const [classes, setClasses] = useState<ClassSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("classes");
 
   useEffect(() => {
     fetch("/api/public/classes")
@@ -24,7 +25,9 @@ export default function ClassesClient() {
   }, []);
 
   return (
-    <div className="relative">
+    <div className="app">
+      <AppBar active={tab} onNav={setTab} />
+      <div className="app-scroll relative">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[260px] bg-gradient-to-b from-brand-100/60 via-white to-transparent dark:from-brand-950/40 dark:via-slate-950 dark:to-transparent"
@@ -66,6 +69,8 @@ export default function ClassesClient() {
                 <p className="mt-3 text-sm text-slate-700 line-clamp-3 dark:text-slate-300">{c.description}</p>
                 <Link
                   href={`/classes/${c.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-300 dark:hover:text-brand-200"
                 >
                   Open classroom
@@ -75,6 +80,7 @@ export default function ClassesClient() {
             ))
           )}
         </div>
+      </div>
       </div>
     </div>
   );

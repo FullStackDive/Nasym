@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Badge, Button, Card, Input, Textarea } from "@/components/ui";
+import { AdminShell } from "@/components/admin-client";
 
 type Lesson = { id: string; title: string };
 type QuizListItem = { id: string; title: string; description: string; createdAt: string; lesson?: Lesson | null; questions: { id: string }[] };
@@ -151,13 +151,13 @@ export default function AdminQuizzesClient() {
   }
 
   return (
+    <AdminShell active="quizzes">
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black">Quizzes manager</h1>
           <p className="mt-2 text-slate-600">Create, edit, and delete quizzes and questions.</p>
         </div>
-        <Link href="/admin"><Button variant="secondary">Back</Button></Link>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -280,5 +280,6 @@ export default function AdminQuizzesClient() {
         </Card>
       </div>
     </div>
+    </AdminShell>
   );
 }
