@@ -217,6 +217,29 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
             <Icon name="shield" size={12} /> Admin
           </button>
         )}
+        {authed && role === "ADMIN" && (
+          <button
+            onClick={() => router.push("/")}
+            className="appbar-user-pill"
+            title="Back to user site"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 14px",
+              borderRadius: 999,
+              border: "1px solid var(--brand-700)",
+              background: "var(--brand-700)",
+              color: "white",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              letterSpacing: "0.04em",
+            }}
+          >
+            <Icon name="user" size={12} /> User
+          </button>
+        )}
         {authed && displayName ? (
           <span style={{ cursor: "pointer" }} onClick={() => router.push("/profile")} title={displayName}>
             <Avatar name={displayName} size={36} />
