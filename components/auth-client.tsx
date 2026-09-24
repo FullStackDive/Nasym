@@ -16,7 +16,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   CredentialsSignin: "Incorrect email or password.",
 };
 
-const AuthClient = ({ mode: initialMode = "signin" }: { mode?: Mode }) => {
+const AuthClient = ({ mode: initialMode = "signin", googleEnabled = false }: { mode?: Mode; googleEnabled?: boolean }) => {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -102,7 +102,6 @@ const AuthClient = ({ mode: initialMode = "signin" }: { mode?: Mode }) => {
     }
   }
 
-  const googleEnabled = true; // button always shown; will show error if not configured server-side
 
   return (
     <div className="app" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", overflow: "hidden" }}>
@@ -191,10 +190,14 @@ const AuthClient = ({ mode: initialMode = "signin" }: { mode?: Mode }) => {
             </button>
           </form>
 
-          <div className="h-rule" style={{ margin: "26px 0" }}>or</div>
-          <button type="button" className="btn btn-secondary" onClick={handleGoogle} disabled={busy} style={{ width: "100%", justifyContent: "center" }}>
-            <Icon name="globe" size={14} /> Continue with Google
-          </button>
+          {googleEnabled && (
+            <>
+              <div className="h-rule" style={{ margin: "26px 0" }}>or</div>
+              <button type="button" className="btn btn-secondary" onClick={handleGoogle} disabled={busy} style={{ width: "100%", justifyContent: "center" }}>
+                <Icon name="globe" size={14} /> Continue with Google
+              </button>
+            </>
+          )}
 
           <p style={{ marginTop: 22, fontSize: 12, color: "var(--ink-3)", textAlign: "center" }}>
             By {mode === "signin" ? "signing in" : "creating an account"} you agree to our <a style={{ color: "var(--brand-700)" }}>community guidelines</a>.
