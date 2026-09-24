@@ -8,6 +8,11 @@ export async function GET() {
   // DATABASE_URL is intentionally capped at one pooled connection per
   // serverless instance. Run the small homepage queries sequentially instead
   // of making them compete for that single connection.
+  const posters = await prisma.poster.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 6,
+  });
+
   const news = await prisma.newsPost.findMany({
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     take: 8,
@@ -35,7 +40,7 @@ export async function GET() {
   });
 
   return NextResponse.json(
-    { news, upcomingClasses, posts },
+    { posters, news, upcomingClasses, posts },
     { headers: { "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=300" } }
   );
 }
