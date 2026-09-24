@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // Public, anonymous content. Safe to cache briefly at the edge / CDN.
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET() {
   // DATABASE_URL is intentionally capped at one pooled connection per
