@@ -66,16 +66,15 @@ export default function HomeClient() {
     let cancelled = false;
     async function load() {
       try {
-        const [homeRes, blogRes] = await Promise.all([
-          fetch("/api/public/home").then(r => r.ok ? r.json() : null).catch(() => null),
-          fetch("/api/blog?page=1").then(r => r.ok ? r.json() : null).catch(() => null),
-        ]);
+        const homeRes = await fetch("/api/public/home")
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null);
         if (cancelled) return;
         if (homeRes) {
           setUpcoming(homeRes.upcomingClasses ?? []);
           setNews(homeRes.news ?? []);
+          setPosts(homeRes.posts ?? []);
         }
-        if (blogRes) setPosts(blogRes.posts ?? []);
       } finally {
         if (!cancelled) setLoading(false);
       }
