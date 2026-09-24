@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export const revalidate = 60;
 
 export async function GET() {
-  const [posters, news, upcomingClasses] = await Promise.all([
+  const [posters, news, upcomingClasses, posts] = await Promise.all([
     prisma.poster.findMany({
       orderBy: { createdAt: "desc" },
       take: 6,
@@ -20,10 +20,23 @@ export async function GET() {
       take: 6,
       select: { id: true, title: true, description: true, scheduledAt: true, isLive: true },
     }),
+    prisma.blogPost.findMany({
+      where: { isPublished: true },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: 6,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        excerpt: true,
+        createdAt: true,
+        author: { select: { id: true, name: true } },
+      },
+    }),
   ]);
 
   return NextResponse.json(
-    { posters, news, upcomingClasses },
+    { posters, news, upcomingClasses, posts },
     { headers: { "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=300" } }
   );
 }
