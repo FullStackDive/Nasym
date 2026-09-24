@@ -21,8 +21,6 @@ type QuizSummary = {
   recentAttempts: { id: string; score: number; total: number; quizTitle: string; quizId: string; createdAt: string }[];
 };
 
-type Progress = { lessonId: string; completedAt: string };
-
 const DEFAULT_HABITS = [
   { id: "fajr", label: "Fajr prayer", time: "before sunrise" },
   { id: "quran", label: "Read 1 page of Qur'an", time: "anytime" },
@@ -42,23 +40,20 @@ const DashboardClient = () => {
   const [tab, setTab] = useState("dashboard");
   const [courses, setCourses] = useState<Course[]>([]);
   const [quizSummary, setQuizSummary] = useState<QuizSummary | null>(null);
-  const [progress, setProgress] = useState<Progress[]>([]);
+  const [lessonsCompleted, setLessonsCompleted] = useState(0);
   const [habits, setHabits] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [coursesRes, quizRes, progressRes, habitsRes] = await Promise.all([
-        fetch("/api/courses").then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch("/api/me/quiz-summary").then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch("/api/me/progress").then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch("/api/reminders/today").then(r => r.ok ? r.json() : null).catch(() => null),
-      ]);
-      setCourses(coursesRes?.courses ?? []);
-      setQuizSummary(quizRes ?? { totalAttempts: 0, avgScore: 0, recentAttempts: [] });
-      setProgress(progressRes?.progress ?? []);
-      setHabits(habitsRes?.habits ?? {});
+      const res = await fetch("/api/dashboard", { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Dashboard could not be loaded.");
+      setCourses(data?.courses ?? []);
+      setQuizSummary(data?.quizSummary ?? { totalAttempts: 0, avgScore: 0, recentAttempts: [] });
+      setLessonsCompleted(data?.lessonsCompleted ?? 0);
+      setHabits(data?.habits ?? {});
     } finally {
       setLoading(false);
     }
@@ -97,7 +92,6 @@ const DashboardClient = () => {
   const firstName = userName.split(" ")[0];
   const userRole = (session?.user as { role?: string } | undefined)?.role;
   const isAdmin = userRole === "ADMIN";
-  const lessonsCompleted = progress.length;
   const habitsDone = DEFAULT_HABITS.filter(h => habits[h.id]).length;
 
   const adminQuickLinks: [string, string, "users" | "video" | "book" | "newspaper" | "check" | "trend" | "shield"][] = [
