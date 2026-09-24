@@ -16,6 +16,23 @@ const ERROR_MESSAGES: Record<string, string> = {
   CredentialsSignin: "Incorrect email or password.",
 };
 
+async function withTimeout<T>(promise: Promise<T>, ms = 15000): Promise<T> {
+  let timer: number | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = window.setTimeout(
+          () => reject(new DOMException("Request timed out", "AbortError")),
+          ms
+        );
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) window.clearTimeout(timer);
+  }
+}
+
 const AuthClient = ({ mode: initialMode = "signin", googleEnabled = false }: { mode?: Mode; googleEnabled?: boolean }) => {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [name, setName] = useState("");
@@ -66,11 +83,11 @@ const AuthClient = ({ mode: initialMode = "signin", googleEnabled = false }: { m
         }
       }
 
-      const result = await signIn("credentials", {
+      const result = await withTimeout(signIn("credentials", {
         email: normalizedEmail,
         password,
         redirect: false,
-      });
+      }));
 
       if (!result?.ok) {
         const code = result?.error ?? "CredentialsSignin";
