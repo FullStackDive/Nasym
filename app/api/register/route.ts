@@ -13,7 +13,7 @@ import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
  */
 const schema = z.object({
   name: z.string().min(2).max(60),
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   password: z.string().min(6).max(100)
 });
 
@@ -27,7 +27,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const exists = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  const email = parsed.data.email;
+  const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) {
     return NextResponse.json({ error: "Email already registered" }, { status: 409 });
   }
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
   const user = await prisma.user.create({
     data: {
       name: parsed.data.name,
-      email: parsed.data.email,
+      email,
       passwordHash,
       role: "STUDENT",
       status: "PENDING_APPROVAL"
