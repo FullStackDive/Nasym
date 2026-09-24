@@ -16,7 +16,24 @@ const ERROR_MESSAGES: Record<string, string> = {
   CredentialsSignin: "Incorrect email or password.",
 };
 
-const AuthClient = ({ mode: initialMode = "signin" }: { mode?: Mode }) => {
+async function withTimeout<T>(promise: Promise<T>, ms = 15000): Promise<T> {
+  let timer: number | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = window.setTimeout(
+          () => reject(new DOMException("Request timed out", "AbortError")),
+          ms
+        );
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) window.clearTimeout(timer);
+  }
+}
+
+const AuthClient = ({ mode: initialMode = "signin", googleEnabled = false }: { mode?: Mode; googleEnabled?: boolean }) => {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -39,46 +56,69 @@ const AuthClient = ({ mode: initialMode = "signin" }: { mode?: Mode }) => {
     setInfo(null);
     setBusy(true);
 
-    if (mode === "register") {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-      const data = await res.json();
-      setBusy(false);
-      if (!res.ok) {
-        setError(data.error ?? "Registration failed.");
+    const normalizedEmail = email.trim().toLowerCase();
+
+    try {
+      if (mode === "register") {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 15000);
+        try {
+          const res = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: name.trim(), email: normalizedEmail, password }),
+            signal: controller.signal,
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok) {
+            setError(data?.error ?? (res.status === 503
+              ? "The database is temporarily busy. Please try again."
+              : "Registration failed. Please try again."));
+            return;
+          }
+          setInfo("Account created! An admin will review and activate it. You'll receive an email when it's ready.");
+          return;
+        } finally {
+          window.clearTimeout(timeout);
+        }
+      }
+
+      const result = await withTimeout(signIn("credentials", {
+        email: normalizedEmail,
+        password,
+        redirect: false,
+      }));
+
+      if (!result?.ok) {
+        const code = result?.error ?? "CredentialsSignin";
+        setError(ERROR_MESSAGES[code] ?? ERROR_MESSAGES.CredentialsSignin);
         return;
       }
-      setInfo("Account created! An admin will review and activate it. You'll receive an email when it's ready.");
-      return;
+
+      router.replace("/dashboard");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof DOMException && err.name === "AbortError"
+          ? "The request took too long. Please try again."
+          : "We couldn't reach the server. Please try again."
+      );
+    } finally {
+      setBusy(false);
     }
-
-    // Sign in
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-    setBusy(false);
-
-    if (!result?.ok) {
-      const code = result?.error ?? "CredentialsSignin";
-      setError(ERROR_MESSAGES[code] ?? ERROR_MESSAGES.CredentialsSignin);
-      return;
-    }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   async function handleGoogle() {
+    setError(null);
     setBusy(true);
-    await signIn("google", { callbackUrl: "/dashboard" });
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch {
+      setError("Google sign-in could not be started. Please try again.");
+      setBusy(false);
+    }
   }
 
-  const googleEnabled = true; // button always shown; will show error if not configured server-side
 
   return (
     <div className="app" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", overflow: "hidden" }}>
@@ -167,10 +207,14 @@ const AuthClient = ({ mode: initialMode = "signin" }: { mode?: Mode }) => {
             </button>
           </form>
 
-          <div className="h-rule" style={{ margin: "26px 0" }}>or</div>
-          <button type="button" className="btn btn-secondary" onClick={handleGoogle} disabled={busy} style={{ width: "100%", justifyContent: "center" }}>
-            <Icon name="globe" size={14} /> Continue with Google
-          </button>
+          {googleEnabled && (
+            <>
+              <div className="h-rule" style={{ margin: "26px 0" }}>or</div>
+              <button type="button" className="btn btn-secondary" onClick={handleGoogle} disabled={busy} style={{ width: "100%", justifyContent: "center" }}>
+                <Icon name="globe" size={14} /> Continue with Google
+              </button>
+            </>
+          )}
 
           <p style={{ marginTop: 22, fontSize: 12, color: "var(--ink-3)", textAlign: "center" }}>
             By {mode === "signin" ? "signing in" : "creating an account"} you agree to our <a style={{ color: "var(--brand-700)" }}>community guidelines</a>.

@@ -1,5 +1,6 @@
 import AuthClient from "@/components/auth-client";
 
 export default function Page() {
-  return <AuthClient mode="register" />;
+  const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  return <AuthClient mode="register" googleEnabled={googleEnabled} />;
 }
