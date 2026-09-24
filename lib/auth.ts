@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const credentialsSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   password: z.string().min(6),
 });
 
@@ -62,7 +62,7 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         // Upsert Google user on first sign-in
-        const email = user.email!;
+        const email = user.email!.trim().toLowerCase();
         const name = user.name ?? email.split("@")[0];
 
         let dbUser = await prisma.user.findUnique({ where: { email } });
