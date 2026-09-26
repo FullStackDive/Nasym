@@ -13,7 +13,7 @@ export type ResolvedRoom = {
     isLive: boolean;
     title: string;
   };
-  user: { id: string; name: string | null; role: string };
+  user: { id: string; name: string | null; email: string | null; role: string };
   isMod: boolean;
 };
 
@@ -60,7 +60,7 @@ export async function resolveRoomAccess(
 
   return {
     classSession: cs,
-    user: { id: userId, name: session.user.name ?? null, role },
+    user: { id: userId, name: session.user.name ?? null, email: session.user.email ?? null, role },
     isMod,
   };
 }

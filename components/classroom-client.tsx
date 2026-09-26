@@ -51,6 +51,13 @@ function initialsOf(name: string) {
     .join("");
 }
 
+type MeetingConfig = {
+  provider: "jaas" | "public-jitsi";
+  domain: string;
+  roomName: string;
+  jwt: string | null;
+};
+
 type Props = { roomName?: string; classId?: string };
 
 const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
@@ -66,6 +73,7 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiRef = useRef<any>(null);
   const [jitsiReady, setJitsiReady] = useState(false);
+  const [meetingConfig, setMeetingConfig] = useState<MeetingConfig | null>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -78,8 +86,6 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
   const [questionDraft, setQuestionDraft] = useState("");
 
   const [tab, setTab] = useState<"chat" | "qa" | "people">("chat");
-
-  const jitsiDomain = process.env.NEXT_PUBLIC_JITSI_DOMAIN ?? "meet.jit.si";
 
   // 1) Resolve roomName: from prop, or fetch via classId
   useEffect(() => {
@@ -125,32 +131,56 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
       .finally(() => setLoading(false));
   }, [roomName]);
 
-  // 3) Load Jitsi script
+  // 3) Resolve the meeting backend. With JaaS configured this returns a
+  // short-lived, user-specific JWT; otherwise it keeps the current free
+  // meet.jit.si fallback until credentials are added.
   useEffect(() => {
-    if (jitsiReady) return;
+    if (!roomName || !classSession) return;
+    setMeetingConfig(null);
+    setJitsiReady(false);
+
+    fetch(`/api/live/${encodeURIComponent(roomName)}/token`, { cache: "no-store" })
+      .then(async r => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d.error) throw new Error(d.error ?? "Failed to authorize video classroom");
+        setMeetingConfig(d as MeetingConfig);
+      })
+      .catch(err => setError(err instanceof Error ? err.message : "Failed to authorize video classroom"));
+  }, [roomName, classSession]);
+
+  // 4) Load the correct Jitsi/JaaS iframe script
+  useEffect(() => {
+    if (!meetingConfig || jitsiReady) return;
     if (typeof window === "undefined") return;
     if (window.JitsiMeetExternalAPI) {
       setJitsiReady(true);
       return;
     }
+
     const script = document.createElement("script");
-    script.src = `https://${jitsiDomain}/external_api.js`;
+    script.src = `https://${meetingConfig.domain}/external_api.js`;
     script.async = true;
     script.onload = () => setJitsiReady(true);
+    script.onerror = () => setError("Video classroom service could not be loaded.");
     document.head.appendChild(script);
-  }, [jitsiDomain, jitsiReady]);
 
-  // 4) Mount Jitsi iframe
+    return () => {
+      script.onerror = null;
+      script.onload = null;
+    };
+  }, [meetingConfig, jitsiReady]);
+
+  // 5) Mount the video classroom iframe
   useEffect(() => {
-    if (!jitsiReady || !classSession || !session || !containerRef.current) return;
+    if (!jitsiReady || !meetingConfig || !classSession || !session || !containerRef.current) return;
     if (apiRef.current) return;
 
     const role = session.user.role;
     const mod = role === "ADMIN" || role === "TEACHER" || classSession.createdBy.id === session.user.id;
     setIsMod(mod);
 
-    apiRef.current = new window.JitsiMeetExternalAPI(jitsiDomain, {
-      roomName: classSession.roomName,
+    const options: Record<string, unknown> = {
+      roomName: meetingConfig.roomName,
       parentNode: containerRef.current,
       width: "100%",
       height: "100%",
@@ -162,16 +192,21 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
         startWithAudioMuted: !mod,
         startWithVideoMuted: !mod,
         disableDeepLinking: true,
-        prejoinPageEnabled: false,
+        prejoinConfig: { enabled: false },
+        disableInitialGUM: true,
       },
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
         SHOW_WATERMARK_FOR_GUESTS: false,
         TOOLBAR_BUTTONS: mod
-          ? ["microphone", "camera", "desktop", "chat", "raisehand", "tileview", "participants-pane", "hangup", "recording", "settings"]
+          ? ["microphone", "camera", "desktop", "chat", "raisehand", "tileview", "participants-pane", "hangup", "settings"]
           : ["microphone", "camera", "chat", "raisehand", "tileview", "hangup", "settings"],
       },
-    });
+    };
+
+    if (meetingConfig.jwt) options.jwt = meetingConfig.jwt;
+
+    apiRef.current = new window.JitsiMeetExternalAPI(meetingConfig.domain, options);
 
     apiRef.current.addEventListener("readyToClose", () => {
       router.push("/classes");
@@ -183,9 +218,9 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
         apiRef.current = null;
       }
     };
-  }, [jitsiReady, classSession, session, jitsiDomain, router]);
+  }, [jitsiReady, meetingConfig, classSession, session, router]);
 
-  // 5) Poll chat
+  // 6) Poll chat
   const fetchMessages = useCallback(async () => {
     if (!roomName) return;
     const lastIso = messages.length ? messages[messages.length - 1].createdAt : null;
@@ -215,7 +250,7 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, tab]);
 
-  // 6) Poll hands
+  // 7) Poll hands
   const fetchHands = useCallback(async () => {
     if (!roomName) return;
     const res = await fetch(`/api/live/${roomName}/hands`).catch(() => null);
@@ -369,7 +404,7 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", flex: 1, minHeight: 0 }}>
         {/* Stage: Jitsi */}
         <div ref={containerRef} style={{ position: "relative", background: "#111" }}>
-          {!jitsiReady && (
+          {(!meetingConfig || !jitsiReady) && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.5)" }}>
               Connecting to room…
             </div>
