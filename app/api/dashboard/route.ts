@@ -31,44 +31,44 @@ export async function GET() {
               enrolments: { some: { userId, status: "ACTIVE" as const } },
             };
 
-    // Keep these sequential: pooled serverless DB connections are deliberately
-    // capped at one per function instance to avoid connection exhaustion.
-    const courses = await prisma.course.findMany({
-      where: courseWhere,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        description: true,
-        coverUrl: true,
-        _count: { select: { modules: true, enrolments: true } },
-      },
-    });
-
-    const attempts = await prisma.quizAttempt.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-      select: {
-        id: true,
-        score: true,
-        createdAt: true,
-        quiz: {
-          select: {
-            id: true,
-            title: true,
-            _count: { select: { questions: true } },
+    // Railway runs a persistent Node service with a small shared Prisma pool,
+    // so these independent reads can run concurrently.
+    const [courses, attempts, lessonsCompleted, habitRecord] = await Promise.all([
+      prisma.course.findMany({
+        where: courseWhere,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          coverUrl: true,
+          _count: { select: { modules: true, enrolments: true } },
+        },
+      }),
+      prisma.quizAttempt.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          score: true,
+          createdAt: true,
+          quiz: {
+            select: {
+              id: true,
+              title: true,
+              _count: { select: { questions: true } },
+            },
           },
         },
-      },
-    });
-
-    const lessonsCompleted = await prisma.lessonProgress.count({ where: { userId } });
-    const habitRecord = await prisma.habitLog.findUnique({
-      where: { userId_date: { userId, date: todayString() } },
-      select: { habits: true },
-    });
+      }),
+      prisma.lessonProgress.count({ where: { userId } }),
+      prisma.habitLog.findUnique({
+        where: { userId_date: { userId, date: todayString() } },
+        select: { habits: true },
+      }),
+    ]);
 
     const percentages = attempts
       .filter((a) => a.quiz._count.questions > 0)
