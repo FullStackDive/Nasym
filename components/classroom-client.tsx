@@ -189,8 +189,8 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
         email: session.user.email ?? "",
       },
       configOverwrite: {
-        startWithAudioMuted: !mod,
-        startWithVideoMuted: !mod,
+        startWithAudioMuted: true,
+        startWithVideoMuted: true,
         disableDeepLinking: true,
         prejoinConfig: { enabled: false },
         disableInitialGUM: true,
