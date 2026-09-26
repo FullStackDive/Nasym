@@ -6,39 +6,39 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  // DATABASE_URL is intentionally capped at one pooled connection per
-  // serverless instance. Run the small homepage queries sequentially instead
-  // of making them compete for that single connection.
-  const posters = await prisma.poster.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 6,
-  });
+  const now = new Date();
 
-  const news = await prisma.newsPost.findMany({
-    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-    take: 8,
-  });
-
-  const upcomingClasses = await prisma.classSession.findMany({
-    where: { scheduledAt: { gte: new Date() } },
-    orderBy: { scheduledAt: "asc" },
-    take: 6,
-    select: { id: true, title: true, description: true, scheduledAt: true, isLive: true },
-  });
-
-  const posts = await prisma.blogPost.findMany({
-    where: { isPublished: true },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: 6,
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      excerpt: true,
-      createdAt: true,
-      author: { select: { id: true, name: true } },
-    },
-  });
+  // These reads are independent and Railway's persistent Node service has a
+  // small shared Prisma pool, so parallel execution reduces homepage latency.
+  const [posters, news, upcomingClasses, posts] = await Promise.all([
+    prisma.poster.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+    prisma.newsPost.findMany({
+      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+      take: 8,
+    }),
+    prisma.classSession.findMany({
+      where: { scheduledAt: { gte: now } },
+      orderBy: { scheduledAt: "asc" },
+      take: 6,
+      select: { id: true, title: true, description: true, scheduledAt: true, isLive: true },
+    }),
+    prisma.blogPost.findMany({
+      where: { isPublished: true },
+      orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+      take: 6,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        excerpt: true,
+        createdAt: true,
+        author: { select: { id: true, name: true } },
+      },
+    }),
+  ]);
 
   return NextResponse.json(
     { posters, news, upcomingClasses, posts },
