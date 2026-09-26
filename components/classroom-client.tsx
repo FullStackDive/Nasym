@@ -193,7 +193,6 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
         startWithVideoMuted: true,
         disableDeepLinking: true,
         prejoinConfig: { enabled: false },
-        disableInitialGUM: true,
       },
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
@@ -208,39 +207,11 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
 
     apiRef.current = new window.JitsiMeetExternalAPI(meetingConfig.domain, options);
 
-    // Explicitly grant media permissions to the cross-origin JaaS iframe.
-    // Some desktop Chromium builds do not expose camera/microphone inside
-    // an embedded 8x8.vc conference unless the iframe has an allow policy.
-    let mediaPermissionObserver: MutationObserver | null = null;
-    const applyIframePermissions = () => {
-      const iframe = containerRef.current?.querySelector("iframe");
-      if (!iframe) return false;
-
-      iframe.setAttribute(
-        "allow",
-        "camera *; microphone *; display-capture *; autoplay *; fullscreen *; picture-in-picture *"
-      );
-      iframe.setAttribute("allowfullscreen", "true");
-      return true;
-    };
-
-    if (!applyIframePermissions() && containerRef.current) {
-      mediaPermissionObserver = new MutationObserver(() => {
-        if (applyIframePermissions()) {
-          mediaPermissionObserver?.disconnect();
-          mediaPermissionObserver = null;
-        }
-      });
-      mediaPermissionObserver.observe(containerRef.current, { childList: true, subtree: true });
-    }
-
     apiRef.current.addEventListener("readyToClose", () => {
       router.push("/classes");
     });
 
-    return () => {
-      mediaPermissionObserver?.disconnect();
-      if (apiRef.current) {
+    return () => {      if (apiRef.current) {
         apiRef.current.dispose();
         apiRef.current = null;
       }
