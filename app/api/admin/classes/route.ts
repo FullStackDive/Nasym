@@ -9,7 +9,16 @@ export async function GET() {
   const sessions = await prisma.classSession.findMany({
     orderBy: [{ isLive: "desc" }, { scheduledAt: "asc" }],
     take: 100,
-    select: { id: true, title: true, description: true, scheduledAt: true, isLive: true, roomName: true }
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      scheduledAt: true,
+      isLive: true,
+      roomName: true,
+      courseId: true,
+      course: { select: { id: true, title: true } }
+    }
   });
   return NextResponse.json({ sessions });
 }
@@ -19,7 +28,8 @@ const schema = z.object({
   description: z.string().min(10).max(2000),
   scheduledAt: z.string().datetime(),
   roomName: z.string().min(6).max(80).regex(/^[a-zA-Z0-9-_]+$/),
-  isLive: z.boolean().default(false)
+  isLive: z.boolean().default(false),
+  courseId: z.string().min(1).nullable().optional()
 });
 
 export async function POST(req: Request) {
@@ -33,6 +43,14 @@ export async function POST(req: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
+  if (parsed.data.courseId) {
+    const course = await prisma.course.findUnique({
+      where: { id: parsed.data.courseId },
+      select: { id: true }
+    });
+    if (!course) return NextResponse.json({ error: "Selected course not found" }, { status: 400 });
+  }
+
   const created = await prisma.classSession.create({
     data: {
       title: parsed.data.title,
@@ -40,9 +58,19 @@ export async function POST(req: Request) {
       scheduledAt: new Date(parsed.data.scheduledAt),
       roomName: parsed.data.roomName,
       isLive: parsed.data.isLive,
+      courseId: parsed.data.courseId ?? null,
       createdById: session.user.id
     },
-    select: { id: true, title: true, description: true, scheduledAt: true, isLive: true, roomName: true }
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      scheduledAt: true,
+      isLive: true,
+      roomName: true,
+      courseId: true,
+      course: { select: { id: true, title: true } }
+    }
   });
 
   // Notify all active users about the new class (fire-and-forget)
