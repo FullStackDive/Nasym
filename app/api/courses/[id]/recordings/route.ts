@@ -76,13 +76,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   if (classSessionId) {
-    const classSession = await prisma.classSession.findFirst({
-      where: { id: classSessionId, courseId },
-      select: { id: true },
+    const classSession = await prisma.classSession.findUnique({
+      where: { id: classSessionId },
+      select: { id: true, courseId: true },
     });
-    if (!classSession) {
+    if (!classSession || (classSession.courseId && classSession.courseId !== courseId)) {
       return NextResponse.json(
-        { error: "Selected class session does not belong to this course." },
+        { error: "Selected class session belongs to a different course." },
         { status: 400 }
       );
     }
