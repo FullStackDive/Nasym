@@ -207,21 +207,6 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
 
     apiRef.current = new window.JitsiMeetExternalAPI(meetingConfig.domain, options);
 
-    // Chrome requires the embedding iframe itself to explicitly delegate
-    // camera/microphone to a cross-origin JaaS document. Use Jitsi's official
-    // getIFrame() API so this is applied directly to the generated iframe.
-    const jitsiIframe =
-      apiRef.current.getIFrame?.() ??
-      containerRef.current.querySelector("iframe");
-
-    if (jitsiIframe) {
-      jitsiIframe.setAttribute(
-        "allow",
-        "camera *; microphone *; display-capture *; autoplay *; fullscreen *; picture-in-picture *"
-      );
-      jitsiIframe.setAttribute("allowfullscreen", "true");
-    }
-
     apiRef.current.addEventListener("readyToClose", () => {
       router.push("/classes");
     });
