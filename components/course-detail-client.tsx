@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Icon, Avatar, AppBar } from "./ui";
 import { KhatamPattern } from "./motifs";
+import { getYouTubeVideoId } from "@/lib/youtube";
 
 type CourseModule = {
   id: string;
@@ -89,6 +90,7 @@ type RecordingSummary = {
   durationSec: number | null;
   createdAt: string;
   uploadedBy: { id: string; name: string };
+  classSession: { id: string; title: string; scheduledAt: string } | null;
 };
 
 type ClassSessionSummary = {
@@ -157,9 +159,9 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
 
   // Recording upload form
   const [showRecordingForm, setShowRecordingForm] = useState(false);
-  const [recForm, setRecForm] = useState({ title: "", description: "", videoUrl: "" });
-  const [recFile, setRecFile] = useState<File | null>(null);
+  const [recForm, setRecForm] = useState({ title: "", description: "", videoUrl: "", classSessionId: "" });
   const [uploadingRec, setUploadingRec] = useState(false);
+  const [recordingError, setRecordingError] = useState("");
 
   // Quiz create form
   const [showQuizForm, setShowQuizForm] = useState(false);
@@ -242,7 +244,10 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
     if (tab === "members") loadMembers();
     if (tab === "assignments") loadAssignments();
     if (tab === "quizzes") loadQuizzes();
-    if (tab === "recordings") loadRecordings();
+    if (tab === "recordings") {
+      loadRecordings();
+      loadSessions();
+    }
     if (tab === "sessions") loadSessions();
   }, [tab, loadMaterials, loadAnnouncements, loadMembers, loadAssignments, loadQuizzes, loadRecordings, loadSessions]);
 
@@ -368,29 +373,51 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   };
 
   const uploadRecording = async () => {
-    if (!recForm.title.trim()) return;
+    if (!recForm.title.trim() || !recForm.videoUrl.trim()) return;
+
+    if (!getYouTubeVideoId(recForm.videoUrl)) {
+      setRecordingError("Please paste a valid YouTube video link.");
+      return;
+    }
+
+    setRecordingError("");
     setUploadingRec(true);
     try {
-      let res;
-      if (recFile) {
-        const form = new FormData();
-        form.append("file", recFile);
-        form.append("title", recForm.title);
-        if (recForm.description) form.append("description", recForm.description);
-        res = await fetch(`/api/courses/${courseId}/recordings`, { method: "POST", body: form });
-      } else if (recForm.videoUrl.trim()) {
-        res = await fetch(`/api/courses/${courseId}/recordings`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: recForm.title, description: recForm.description, videoUrl: recForm.videoUrl }),
-        });
-      } else return;
-      if (res.ok) {
-        const { recording } = await res.json();
-        setRecordings(r => [recording, ...r]);
-        setRecForm({ title: "", description: "", videoUrl: "" }); setRecFile(null); setShowRecordingForm(false);
+      const res = await fetch(`/api/courses/${courseId}/recordings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: recForm.title,
+          description: recForm.description,
+          videoUrl: recForm.videoUrl,
+          classSessionId: recForm.classSessionId || undefined,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRecordingError(data.error ?? "Could not add recording.");
+        return;
       }
-    } finally { setUploadingRec(false); }
+
+      setRecordings(r => [data.recording, ...r]);
+      setRecForm({ title: "", description: "", videoUrl: "", classSessionId: "" });
+      setShowRecordingForm(false);
+    } finally {
+      setUploadingRec(false);
+    }
+  };
+
+  const openRecordingForSession = (cs: ClassSessionSummary) => {
+    setRecForm({
+      title: `${cs.title} — Recording`,
+      description: "",
+      videoUrl: "",
+      classSessionId: cs.id,
+    });
+    setRecordingError("");
+    setShowRecordingForm(true);
+    setTab("recordings");
   };
 
   const deleteRecording = async (id: string) => {
@@ -856,6 +883,11 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
                             >
                               <Icon name="video" size={13}/> {cs.isLive ? "Join Live" : "Enter Room"}
                             </button>
+                            {canEdit && !cs.isLive && (
+                              <button className="btn btn-ghost btn-sm" onClick={() => openRecordingForSession(cs)}>
+                                <Icon name="play" size={13}/> Add recording
+                              </button>
+                            )}
                             {canEdit && (
                               <button className="btn btn-ghost btn-sm" style={{ color:"var(--danger,#e53e3e)", padding:"4px 8px" }} onClick={() => deleteSession(cs.id)}>
                                 <Icon name="trash" size={13}/>
@@ -877,8 +909,18 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
               {canEdit && (
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 20 }}>
                   <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Recordings</h2>
-                  <button className="btn btn-primary btn-sm" onClick={() => setShowRecordingForm(v => !v)}>
-                    <Icon name="upload" size={13}/> Add recording
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      const next = !showRecordingForm;
+                      setShowRecordingForm(next);
+                      if (next) {
+                        setRecForm({ title: "", description: "", videoUrl: "", classSessionId: "" });
+                        setRecordingError("");
+                      }
+                    }}
+                  >
+                    <Icon name="play" size={13}/> Add recording
                   </button>
                 </div>
               )}
@@ -892,24 +934,36 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
                       <input className="input" value={recForm.title} onChange={e => setRecForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Week 3 — Lesson recording" />
                     </div>
                     <div>
+                      <label className="label">Class session (optional)</label>
+                      <select className="input" value={recForm.classSessionId} onChange={e => setRecForm(f => ({ ...f, classSessionId: e.target.value }))}>
+                        <option value="">General course recording</option>
+                        {sessions.map(cs => (
+                          <option key={cs.id} value={cs.id}>
+                            {cs.title} — {new Date(cs.scheduledAt).toLocaleDateString("en-GB")}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
                       <label className="label">Description (optional)</label>
                       <textarea className="input" rows={2} value={recForm.description} onChange={e => setRecForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief summary…" style={{ resize:"vertical" }} />
                     </div>
                     <div>
-                      <label className="label">Upload video file</label>
-                      <input type="file" accept="video/*" className="input" style={{ padding:"8px 12px" }} onChange={e => setRecFile(e.target.files?.[0] ?? null)} />
+                      <label className="label">Unlisted YouTube URL *</label>
+                      <input className="input" value={recForm.videoUrl} onChange={e => { setRecForm(f => ({ ...f, videoUrl: e.target.value })); setRecordingError(""); }} placeholder="https://youtu.be/…" />
+                      <div style={{ fontSize:11, color:"var(--ink-3)", marginTop:6 }}>
+                        Upload the class to YouTube as Unlisted, then paste its share link here.
+                      </div>
                     </div>
-                    <div style={{ textAlign:"center", color:"var(--ink-3)", fontSize:13 }}>— or —</div>
-                    <div>
-                      <label className="label">External URL (YouTube embed, Vimeo, etc.)</label>
-                      <input className="input" value={recForm.videoUrl} onChange={e => setRecForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="https://…" disabled={!!recFile} />
-                    </div>
+                    {recordingError && (
+                      <div style={{ fontSize:12, color:"var(--danger,#e53e3e)" }}>{recordingError}</div>
+                    )}
                   </div>
                   <div style={{ display:"flex", gap: 8 }}>
-                    <button className="btn btn-primary" onClick={uploadRecording} disabled={uploadingRec || !recForm.title.trim() || (!recFile && !recForm.videoUrl.trim())}>
-                      {uploadingRec ? "Uploading…" : "Add recording"}
+                    <button className="btn btn-primary" onClick={uploadRecording} disabled={uploadingRec || !recForm.title.trim() || !recForm.videoUrl.trim()}>
+                      {uploadingRec ? "Adding…" : "Add recording"}
                     </button>
-                    <button className="btn btn-ghost" onClick={() => { setShowRecordingForm(false); setRecFile(null); }}>Cancel</button>
+                    <button className="btn btn-ghost" onClick={() => { setShowRecordingForm(false); setRecordingError(""); }}>Cancel</button>
                   </div>
                 </div>
               )}
@@ -1181,6 +1235,11 @@ const RecordingCard = ({
       </a>
       <div style={{ padding:"14px 16px 16px" }}>
         <a href={`/courses/${courseId}/recordings/${recording.id}`} style={{ fontWeight:700, fontSize:14, color:"inherit", textDecoration:"none", display:"block", marginBottom:4 }}>{recording.title}</a>
+        {recording.classSession && (
+          <div style={{ fontSize:11, color:"var(--brand-700)", fontWeight:600, marginBottom:6 }}>
+            <Icon name="calendar" size={11}/> {recording.classSession.title} · {new Date(recording.classSession.scheduledAt).toLocaleDateString("en-GB")}
+          </div>
+        )}
         {recording.description && <p style={{ fontSize:12, color:"var(--ink-3)", margin:"0 0 8px", lineHeight:1.5 }}>{recording.description}</p>}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:11, color:"var(--ink-3)" }}>
           <span>{recording.uploadedBy.name}</span>

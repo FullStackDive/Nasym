@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, AppBar } from "./ui";
+import { getYouTubeVideoId, toYouTubeEmbedUrl } from "@/lib/youtube";
 
 type Recording = {
   id: string;
@@ -12,15 +13,15 @@ type Recording = {
   durationSec: number | null;
   createdAt: string;
   uploadedBy: { id: string; name: string };
+  classSession: { id: string; title: string; scheduledAt: string } | null;
 };
 
-const isYouTube = (url: string) => url.includes("youtube.com") || url.includes("youtu.be");
+const isYouTube = (url: string) => Boolean(getYouTubeVideoId(url));
 const isVimeo = (url: string) => url.includes("vimeo.com");
 
 function toEmbedUrl(url: string): string {
   if (isYouTube(url)) {
-    const match = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-    return match ? `https://www.youtube.com/embed/${match[1]}?rel=0` : url;
+    return toYouTubeEmbedUrl(url) ?? url;
   }
   if (isVimeo(url)) {
     const match = url.match(/vimeo\.com\/(\d+)/);
@@ -143,7 +144,10 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
               <div style={{ display:"flex", gap:16, fontSize:13, color:"var(--ink-3)", marginBottom:14 }}>
                 <span><Icon name="user" size={13}/> {recording.uploadedBy.name}</span>
                 {duration && <span><Icon name="clock" size={13}/> {duration}</span>}
-                <span><Icon name="calendar" size={13}/> {new Date(recording.createdAt).toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" })}</span>
+                {recording.classSession && (
+                  <span><Icon name="calendar" size={13}/> {recording.classSession.title} · {new Date(recording.classSession.scheduledAt).toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" })}</span>
+                )}
+                <span><Icon name="calendar" size={13}/> Added {new Date(recording.createdAt).toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" })}</span>
                 {isPrivate && <span style={{ color:"var(--brand-700)", fontWeight:600 }}><Icon name="lock" size={12}/> Enrolled-only</span>}
               </div>
               {recording.description && (
