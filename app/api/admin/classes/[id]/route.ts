@@ -9,7 +9,8 @@ const schema = z.object({
   description: z.string().min(10).max(2000),
   scheduledAt: z.string().datetime(),
   roomName: z.string().min(6).max(80).regex(/^[a-zA-Z0-9-_]+$/),
-  isLive: z.boolean().default(false)
+  isLive: z.boolean().default(false),
+  courseId: z.string().min(1).nullable().optional()
 });
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +23,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const cls = await prisma.classSession.findUnique({
     where: { id },
-    select: { id: true, title: true, description: true, scheduledAt: true, isLive: true, roomName: true }
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      scheduledAt: true,
+      isLive: true,
+      roomName: true,
+      courseId: true,
+      course: { select: { id: true, title: true } }
+    }
   });
   if (!cls) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -41,6 +51,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
+  if (parsed.data.courseId) {
+    const course = await prisma.course.findUnique({
+      where: { id: parsed.data.courseId },
+      select: { id: true }
+    });
+    if (!course) return NextResponse.json({ error: "Selected course not found" }, { status: 400 });
+  }
+
   const updated = await prisma.classSession.update({
     where: { id },
     data: {
@@ -48,9 +66,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       description: parsed.data.description,
       scheduledAt: new Date(parsed.data.scheduledAt),
       roomName: parsed.data.roomName,
-      isLive: parsed.data.isLive
+      isLive: parsed.data.isLive,
+      courseId: parsed.data.courseId ?? null
     },
-    select: { id: true, title: true, description: true, scheduledAt: true, isLive: true, roomName: true }
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      scheduledAt: true,
+      isLive: true,
+      roomName: true,
+      courseId: true,
+      course: { select: { id: true, title: true } }
+    }
   });
 
   return NextResponse.json({ session: updated });
