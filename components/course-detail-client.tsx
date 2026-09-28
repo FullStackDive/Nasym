@@ -909,8 +909,18 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
               {canEdit && (
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 20 }}>
                   <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Recordings</h2>
-                  <button className="btn btn-primary btn-sm" onClick={() => setShowRecordingForm(v => !v)}>
-                    <Icon name="upload" size={13}/> Add recording
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      const next = !showRecordingForm;
+                      setShowRecordingForm(next);
+                      if (next) {
+                        setRecForm({ title: "", description: "", videoUrl: "", classSessionId: "" });
+                        setRecordingError("");
+                      }
+                    }}
+                  >
+                    <Icon name="play" size={13}/> Add recording
                   </button>
                 </div>
               )}
