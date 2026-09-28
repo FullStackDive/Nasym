@@ -207,6 +207,28 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
 
     apiRef.current = new window.JitsiMeetExternalAPI(meetingConfig.domain, options);
 
+    if (meetingConfig.provider === "jaas") {
+      const iframe = apiRef.current.getIFrame?.();
+      if (iframe) {
+        // Jitsi's default allow="camera; microphone" is equivalent to 'src'
+        // and can be lost if the embedded document navigates during JaaS startup.
+        // Chrome applies iframe Permissions Policy at load time, so make the
+        // container policy navigation-safe and reload once after changing it.
+        const mediaAllow =
+          "camera *; microphone *; display-capture *; autoplay *; fullscreen *; picture-in-picture *; speaker-selection *";
+
+        if (iframe.getAttribute("allow") !== mediaAllow) {
+          iframe.setAttribute("allow", mediaAllow);
+          iframe.setAttribute("allowfullscreen", "true");
+
+          const currentSrc = iframe.src;
+          if (currentSrc) {
+            iframe.src = currentSrc;
+          }
+        }
+      }
+    }
+
     apiRef.current.addEventListener("readyToClose", () => {
       router.push("/classes");
     });
