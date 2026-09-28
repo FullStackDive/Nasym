@@ -24,7 +24,6 @@ type Material = {
   moduleId: string | null;
   createdAt: string;
   uploadedBy: { id: string; name: string };
-  classSession: { id: string; title: string; scheduledAt: string } | null;
 };
 
 type Announcement = {
@@ -91,6 +90,7 @@ type RecordingSummary = {
   durationSec: number | null;
   createdAt: string;
   uploadedBy: { id: string; name: string };
+  classSession: { id: string; title: string; scheduledAt: string } | null;
 };
 
 type ClassSessionSummary = {
