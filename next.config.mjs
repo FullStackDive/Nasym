@@ -15,15 +15,21 @@ const nextConfig = {
     optimizePackageImports: ["lucide-react", "@prisma/client"],
   },
   async headers() {
+    const classroomMediaPolicy = [
+      {
+        key: "Permissions-Policy",
+        value: "camera=*, microphone=*, display-capture=*, speaker-selection=*",
+      },
+    ];
+
     return [
       {
-        source: "/:path*",
-        headers: [
-          {
-            key: "Permissions-Policy",
-            value: 'camera=(self "https://8x8.vc"), microphone=(self "https://8x8.vc")',
-          },
-        ],
+        source: "/classes/:path*",
+        headers: classroomMediaPolicy,
+      },
+      {
+        source: "/live/:path*",
+        headers: classroomMediaPolicy,
       },
       {
         source: "/fonts/:path*",
