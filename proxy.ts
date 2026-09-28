@@ -74,7 +74,13 @@ function withSecurityHeaders(res: NextResponse): NextResponse {
   res.headers.set("X-Frame-Options", "SAMEORIGIN");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("X-DNS-Prefetch-Control", "on");
-  res.headers.set("Permissions-Policy", "camera=(), microphone=(self), geolocation=(), interest-cohort=()");
+  // JaaS is embedded cross-origin and can be reached after client-side navigation.
+  // Keep media features available at the document level; the Jitsi iframe's
+  // own allow policy plus the browser's user permission prompt still gate use.
+  res.headers.set(
+    "Permissions-Policy",
+    "camera=*, microphone=*, display-capture=*, speaker-selection=*, geolocation=(), interest-cohort=()"
+  );
   res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   return res;
 }
