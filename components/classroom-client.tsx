@@ -192,7 +192,7 @@ const ClassroomClient = ({ roomName: roomNameProp, classId }: Props) => {
         startWithAudioMuted: true,
         startWithVideoMuted: true,
         disableDeepLinking: true,
-        prejoinConfig: { enabled: false },
+        prejoinConfig: { enabled: meetingConfig.provider === "jaas" },
       },
       interfaceConfigOverwrite: {
         SHOW_JITSI_WATERMARK: false,
