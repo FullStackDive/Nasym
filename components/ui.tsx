@@ -191,13 +191,14 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/public/home")
+    fetch("/api/public/announcement")
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (cancelled || !data) return;
-        const items = Array.isArray(data.news) ? data.news : [];
-        const item = items.find((n: { pinned?: boolean }) => n.pinned) ?? items[0];
-        if (item?.title) setSiteAnnouncement({ title: item.title, body: item.body });
+        if (cancelled || !data?.announcement?.title) return;
+        setSiteAnnouncement({
+          title: data.announcement.title,
+          body: data.announcement.body,
+        });
       })
       .catch(() => {});
     return () => { cancelled = true; };
