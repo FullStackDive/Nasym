@@ -297,6 +297,16 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
               <a key={k} className={active === k ? "active" : ""} onClick={() => handleNav(k)}>{label}</a>
             ))}
             <div style={{ height: 1, background: "var(--hairline)", margin: "10px 4px" }} />
+            {authed && isAdmin && (
+              <a
+                onClick={() => {
+                  router.push(role === "ADMIN" ? "/" : "/admin");
+                  setDrawerOpen(false);
+                }}
+              >
+                {role === "ADMIN" ? "User site" : "Admin"}
+              </a>
+            )}
             {authed && displayName ? (
               <a onClick={() => { router.push("/profile"); setDrawerOpen(false); }}>Profile · {displayName}</a>
             ) : (
