@@ -1,30 +1,115 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none">
-  <g>
-    <!-- Soft-grey upper sweep from the supplied original mark -->
-    <path d="M280 170H408C566 170 666 261 666 405C666 486 637 548 584 604"
-      stroke="#7A7D7C" stroke-width="82" stroke-linecap="butt" stroke-linejoin="round"/>
-    <!-- Charcoal N with restrained serif terminals -->
-    <path d="M250 278V838" stroke="#242223" stroke-width="80" stroke-linecap="square"/>
-    <path d="M255 286L766 829" stroke="#242223" stroke-width="82" stroke-linecap="square"/>
-    <path d="M770 300V838" stroke="#242223" stroke-width="80" stroke-linecap="square"/>
-    <path d="M211 268H307M211 850H307M727 289H825M727 850H825"
-      stroke="#242223" stroke-width="24" stroke-linecap="square"/>
-    <!-- Soft-grey lower sweep -->
-    <path d="M276 584C398 577 472 653 548 754C630 863 704 900 820 905"
-      stroke="#7A7D7C" stroke-width="78" stroke-linecap="butt" stroke-linejoin="round"/>
-    <!-- Breeze lines -->
-    <path d="M112 785C301 634 490 671 866 405"
-      stroke="#EAF0F0" stroke-width="18" stroke-linecap="round"/>
-    <path d="M132 825C327 668 516 708 900 450"
-      stroke="#DDE7E7" stroke-width="17" stroke-linecap="round"/>
-    <path d="M154 863C350 707 542 744 918 501"
-      stroke="#CFDEDF" stroke-width="16" stroke-linecap="round"/>
-    <!-- Leaves -->
-    <path d="M664 505C697 452 738 447 772 416C768 473 744 516 690 535C668 531 659 521 664 505Z"
-      fill="#79B54B"/>
-    <path d="M695 521C718 490 738 468 759 441" stroke="#5F9440" stroke-width="8" stroke-linecap="round"/>
-    <path d="M323 781C354 731 384 719 411 690C410 744 396 788 356 823C333 816 322 801 323 781Z"
-      fill="#8EC454"/>
-    <path d="M350 803C366 767 383 739 402 710" stroke="#6EA143" stroke-width="8" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 980" fill="none">
+  <defs>
+    <linearGradient id="leaf1" x1="650" y1="485" x2="760" y2="405" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67A63E"/>
+      <stop offset="0.55" stop-color="#8CCB52"/>
+      <stop offset="1" stop-color="#A8D96A"/>
+    </linearGradient>
+    <linearGradient id="leaf2" x1="330" y1="790" x2="405" y2="675" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#75B746"/>
+      <stop offset="0.6" stop-color="#96CC58"/>
+      <stop offset="1" stop-color="#B1DB70"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Grey upper arc from the supplied original -->
+  <path
+    d="M268 134H405
+       C565 134 671 230 671 389
+       C671 471 642 541 580 608
+       L521 550
+       C567 499 588 449 588 391
+       C588 280 520 216 401 216
+       H268Z"
+    fill="#7B7E7D"
+  />
+
+  <!-- Grey lower sweep from the supplied original -->
+  <path
+    d="M247 558
+       C357 550 439 590 520 697
+       C615 822 703 884 829 895
+       L825 815
+       C733 805 665 755 590 656
+       C503 541 405 487 258 500Z"
+    fill="#7B7E7D"
+  />
+
+  <!-- Three pale breeze strokes, behind the N -->
+  <path
+    d="M104 807
+       C271 677 409 671 549 638
+       C700 602 806 524 871 428
+       C898 389 924 367 952 370
+       C980 373 997 398 993 429
+       C989 468 962 500 921 527"
+    stroke="#ECF2F2"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M123 848
+       C291 713 433 706 574 672
+       C724 636 828 560 892 467
+       C918 429 943 410 967 415
+       C990 420 1002 442 996 469
+       C988 501 965 529 930 553"
+    stroke="#DDE8E8"
+    stroke-width="17"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M145 886
+       C314 750 457 744 600 709
+       C746 673 844 603 907 516
+       C931 482 953 466 974 472
+       C993 478 1000 499 992 521
+       C981 550 960 574 932 595"
+    stroke="#CCDCDD"
+    stroke-width="16"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Charcoal serif N -->
+  <g fill="#242223">
+    <!-- left stem -->
+    <path d="M188 221H256V839H188Z"/>
+    <path d="M145 221H274V250H145Z"/>
+    <path d="M137 839H315V872H137Z"/>
+
+    <!-- right stem -->
+    <path d="M747 244H813V842H747Z"/>
+    <path d="M705 215H854V247H705Z"/>
+    <path d="M716 842H844V873H716Z"/>
+
+    <!-- diagonal -->
+    <path d="M244 222L817 827L763 878L190 273Z"/>
   </g>
+
+  <!-- subtle charcoal edge definition from original print -->
+  <path d="M244 222L817 827" stroke="#171617" stroke-width="2.4" opacity=".55"/>
+  <path d="M188 221V839M813 244V842" stroke="#171617" stroke-width="2" opacity=".5"/>
+
+  <!-- Upper green leaf -->
+  <path
+    d="M650 499
+       C675 449 720 443 753 414
+       C755 463 736 505 687 529
+       C664 528 649 518 650 499Z"
+    fill="url(#leaf1)"
+  />
+  <path d="M677 520C704 486 727 458 747 430" stroke="#5E9440" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+
+  <!-- Lower green leaf -->
+  <path
+    d="M324 778
+       C345 730 379 707 401 679
+       C409 728 399 773 361 815
+       C341 812 327 798 324 778Z"
+    fill="url(#leaf2)"
+  />
+  <path d="M349 803C364 763 381 728 396 696" stroke="#6A9F42" stroke-width="7" stroke-linecap="round" opacity=".9"/>
 </svg>
