@@ -304,7 +304,7 @@ export default function HomeClient() {
                 <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600, marginBottom: 14 }}>Connect</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <SocialLink href={SOCIAL_LINKS.instagram} label="Instagram" handle="@nasymurrahmah" />
-                  <SocialLink href={SOCIAL_LINKS.facebook} label="Facebook" handle="Nasym-ur-Rahmah" />
+                  <SocialLink href={SOCIAL_LINKS.facebook} label="Facebook" handle="Nasym-Ur-Rahmah Institute" />
                 </div>
               </div>
 
