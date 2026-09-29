@@ -29,8 +29,8 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nasym-ur-Rahmah — Islamic Learning & Live Classes",
-  description: "An Islamic learning app for the youth: live classes, news, reminders, and a safe community."
+  title: "Nasym-Ur-Rahmah Institute — Islamic Learning & Live Classes",
+  description: "Nasym-Ur-Rahmah Institute is an Islamic learning space for live classes, recorded lessons, courses, reflections, and a safe learning community."
 };
 
 export const viewport = {
@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var dark=(t==='dark')||((t==='system'||t===null)&&d);if(dark){document.documentElement.dataset.theme='dark';document.documentElement.classList.add('dark')}else{document.documentElement.dataset.theme='coastal';document.documentElement.classList.remove('dark')}}catch(e){}})();`,
+            __html: `(function(){try{document.documentElement.dataset.theme='coastal';document.documentElement.classList.remove('dark');localStorage.setItem('theme','light')}catch(e){}})();`,
           }}
         />
       </head>
