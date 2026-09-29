@@ -330,7 +330,8 @@ body {
 .logo-name {
   display: inline-flex;
   align-items: center;
-  line-height: 1;
+  line-height: 1.2;
+  transform: translateY(1px);
 }
 .logo-original {
   flex-direction: column;
