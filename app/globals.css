@@ -348,7 +348,7 @@ body {
    prevent overflow on mobile + tablet.
    ========================================================= */
 
-html, body { overflow-x: hidden; max-width: 100vw; }
+html, body { overflow-x: clip; max-width: 100vw; }
 .app, .app-scroll { max-width: 100vw; overflow-x: clip; }
 
 /* Mobile-nav (hamburger) — only visible on small screens */
@@ -363,7 +363,16 @@ html, body { overflow-x: hidden; max-width: 100vw; }
 
 /* ---------- Tablet (≤ 1024px) ---------- */
 @media (max-width: 1024px) {
-  .appbar { padding: 0 20px !important; gap: 18px !important; }
+  .appbar {
+    padding: 0 20px !important;
+    gap: 18px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    width: 100%;
+    max-width: 100vw;
+  }
+  .admin-main-content { overflow-y: visible !important; min-width: 0; }
   .appbar nav { display: none !important; }
   .mobile-nav-btn { display: inline-flex !important; }
   .appbar .appbar-search { display: none !important; }
@@ -382,11 +391,48 @@ html, body { overflow-x: hidden; max-width: 100vw; }
 @media (max-width: 720px) {
   .appbar {
     height: 60px !important;
-    padding: 0 14px !important;
-    gap: 12px !important;
+    padding: 0 10px !important;
+    gap: 8px !important;
+    min-width: 0;
+    overflow: visible;
   }
-  .logo .serif { font-size: 14px !important; }
-  .logo-mark { width: 32px !important; height: 32px !important; }
+  .appbar-logo-link {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+  .appbar-logo-link .logo {
+    min-width: 0;
+    gap: 8px;
+  }
+  .appbar-logo-link .logo .serif {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px !important;
+  }
+  .logo-mark {
+    width: 30px !important;
+    height: 30px !important;
+    flex: 0 0 auto;
+  }
+  .appbar-admin-pill,
+  .appbar-user-pill {
+    display: none !important;
+  }
+  .appbar-notifications,
+  .appbar-avatar,
+  .mobile-nav-btn {
+    flex: 0 0 auto;
+  }
+  .appbar-avatar .avatar {
+    width: 34px !important;
+    height: 34px !important;
+  }
+  .mobile-nav-btn {
+    width: 38px !important;
+    height: 38px !important;
+  }
 
   /* All section padding gets compressed */
   .app-scroll section { padding: 36px 16px !important; }

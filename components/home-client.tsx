@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Icon, LogoMark, AppBar } from "./ui";
 import { Breeze, KhatamPattern, LeafSprig } from "./motifs";
 import { SOCIAL_LINKS, ENROLMENT_FORM_URL } from "@/lib/site";
@@ -55,6 +56,9 @@ function fmtAgo(iso: string) {
 export default function HomeClient() {
   const [tab, setTab] = useState("home");
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
+  const footerName = session?.user?.name?.trim() || session?.user?.email || "Account";
+  const footerRole = (session?.user as { role?: string } | undefined)?.role;
   const [upcoming, setUpcoming] = useState<UpcomingClass[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -247,8 +251,32 @@ export default function HomeClient() {
                   <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: "0.04em" }}>NASYM UR RAHMAH</div>
                 </div>
                 <p style={{ marginTop: 16, color: "rgba(255,255,255,0.65)", fontSize: 13, maxWidth: 480 }}>An open Islamic learning space. Free for students. Built with sincerity.</p>
-                <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-                  <button onClick={() => router.push("/auth/signin")} className="btn" style={{ background: "transparent", color: "var(--surface)", borderColor: "rgba(255,255,255,0.3)" }}>Sign in</button>
+                <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap", alignItems: "center" }}>
+                  {sessionStatus === "authenticated" ? (
+                    <button
+                      onClick={() => router.push("/profile")}
+                      className="btn"
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        color: "var(--surface)",
+                        borderColor: "rgba(255,255,255,0.3)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                      title="Open profile"
+                    >
+                      <Icon name="user" size={14} />
+                      <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.15 }}>
+                        <span style={{ fontSize: 11, opacity: 0.7 }}>Signed in as</span>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>
+                          {footerName}{footerRole ? ` · ${footerRole}` : ""}
+                        </span>
+                      </span>
+                    </button>
+                  ) : sessionStatus === "unauthenticated" ? (
+                    <button onClick={() => router.push("/auth/signin")} className="btn" style={{ background: "transparent", color: "var(--surface)", borderColor: "rgba(255,255,255,0.3)" }}>Sign in</button>
+                  ) : null}
                   <a href={ENROLMENT_FORM_URL} target="_blank" rel="noopener noreferrer" className="btn btn-mint">Apply for admission</a>
                 </div>
               </div>
