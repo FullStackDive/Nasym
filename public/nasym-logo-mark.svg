@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="none">
+  <g>
+    <!-- Soft-grey upper sweep from the supplied original mark -->
+    <path d="M280 170H408C566 170 666 261 666 405C666 486 637 548 584 604"
+      stroke="#7A7D7C" stroke-width="82" stroke-linecap="butt" stroke-linejoin="round"/>
+    <!-- Charcoal N with restrained serif terminals -->
+    <path d="M250 278V838" stroke="#242223" stroke-width="80" stroke-linecap="square"/>
+    <path d="M255 286L766 829" stroke="#242223" stroke-width="82" stroke-linecap="square"/>
+    <path d="M770 300V838" stroke="#242223" stroke-width="80" stroke-linecap="square"/>
+    <path d="M211 268H307M211 850H307M727 289H825M727 850H825"
+      stroke="#242223" stroke-width="24" stroke-linecap="square"/>
+    <!-- Soft-grey lower sweep -->
+    <path d="M276 584C398 577 472 653 548 754C630 863 704 900 820 905"
+      stroke="#7A7D7C" stroke-width="78" stroke-linecap="butt" stroke-linejoin="round"/>
+    <!-- Breeze lines -->
+    <path d="M112 785C301 634 490 671 866 405"
+      stroke="#EAF0F0" stroke-width="18" stroke-linecap="round"/>
+    <path d="M132 825C327 668 516 708 900 450"
+      stroke="#DDE7E7" stroke-width="17" stroke-linecap="round"/>
+    <path d="M154 863C350 707 542 744 918 501"
+      stroke="#CFDEDF" stroke-width="16" stroke-linecap="round"/>
+    <!-- Leaves -->
+    <path d="M664 505C697 452 738 447 772 416C768 473 744 516 690 535C668 531 659 521 664 505Z"
+      fill="#79B54B"/>
+    <path d="M695 521C718 490 738 468 759 441" stroke="#5F9440" stroke-width="8" stroke-linecap="round"/>
+    <path d="M323 781C354 731 384 719 411 690C410 744 396 788 356 823C333 816 322 801 323 781Z"
+      fill="#8EC454"/>
+    <path d="M350 803C366 767 383 739 402 710" stroke="#6EA143" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>
