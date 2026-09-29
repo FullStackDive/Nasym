@@ -100,7 +100,7 @@ export default function HomeClient() {
           <Breeze opacity={0.35} color="var(--c-mid)" />
           <div style={{ position: "absolute", top: -80, right: -80, width: 360, height: 360, borderRadius: "50%", background: "radial-gradient(circle, color-mix(in oklch, var(--accent-500) 22%, transparent), transparent 70%)" }} />
 
-          <div className="responsive-grid" style={{ position: "relative", maxWidth: 1180, margin: "0 auto", padding: "88px 32px 80px", display: "grid", gridTemplateColumns: "1.15fr .85fr", gap: 64, alignItems: "center" }}>
+          <div className="responsive-grid home-hero-inner" style={{ position: "relative", maxWidth: 1180, margin: "0 auto", padding: "48px 32px 64px", display: "grid", gridTemplateColumns: "1.15fr .85fr", gap: 64, alignItems: "center" }}>
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "6px 14px 6px 6px", borderRadius: 999, background: "var(--surface)", border: "1px solid var(--hairline)", marginBottom: 26 }}>
                 <span style={{ width: 24, height: 24, borderRadius: 999, background: "var(--brand-700)", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="wind" size={13} /></span>

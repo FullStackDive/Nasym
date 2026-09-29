@@ -73,7 +73,7 @@ const ProfileClient = () => {
     <div className="app">
       <AppBar active={tab} onNav={setTab} />
       <div className="app-scroll">
-        <div style={{ position: "relative", height: 200, overflow: "visible", background: "linear-gradient(170deg, var(--brand-700) 0%, var(--brand-800) 55%, var(--brand-900) 100%)" }}>
+        <div className="profile-hero" style={{ position: "relative", height: 150, overflow: "visible", background: "linear-gradient(170deg, var(--brand-700) 0%, var(--brand-800) 55%, var(--brand-900) 100%)" }}>
           <Breeze opacity={0.25} color="var(--mint-300)" />
           <div style={{ position: "absolute", top: 22, right: 28, opacity: 0.5 }}><LeafSprig size={42} color="var(--mint-300)"/></div>
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 90, background: "linear-gradient(to bottom, transparent, var(--bg) 95%)", pointerEvents: "none" }} />

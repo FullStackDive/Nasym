@@ -316,6 +316,22 @@ body {
   align-items:center;
   color: var(--ink);
 }
+.appbar-logo-link {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  height: 100%;
+  line-height: 1;
+}
+.appbar-logo-link .logo {
+  height: 100%;
+  align-items: center;
+}
+.logo-name {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
 .logo-original {
   flex-direction: column;
   justify-content: center;
@@ -530,6 +546,13 @@ html, body { overflow-x: clip; max-width: 100vw; }
 
 /* ---------- Mobile (≤ 720px) ---------- */
 @media (max-width: 720px) {
+  .home-hero-inner {
+    padding: 30px 16px 44px !important;
+  }
+  .profile-hero {
+    height: 138px !important;
+  }
+
   .site-announcement-bar {
     top: 60px;
     height: 32px;
