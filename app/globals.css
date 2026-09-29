@@ -346,13 +346,16 @@ body {
 .logo-mark img { width: 100%; height: 100%; object-fit: contain; }
 .logo-mark img.logo-original-image {
   position: absolute;
-  width: 140%;
-  height: auto;
+  /* Exact pixel crop of the supplied 1311×1536 PNG.
+     Visible monogram bounds are x 177–1129 and y 239–1150 (952×911).
+     These percentages preserve the source pixels without stretching or redrawing. */
+  width: 137.710084%;
+  height: 168.605927%;
   max-width: none;
-  left: 50%;
-  top: -18%;
-  transform: translateX(-50%);
-  object-fit: initial;
+  left: -18.592437%;
+  top: -26.234907%;
+  transform: none;
+  object-fit: fill;
 }
 
 /* Scrolling announcement strip directly below the sticky header */
@@ -569,17 +572,6 @@ html, body { overflow-x: clip; max-width: 100vw; }
   .appbar-logo-link .logo {
     min-width: 0;
   }
-  .appbar-logo-link .logo-original {
-    width: 76px;
-  }
-  .appbar-logo-link .logo-original .logo-mark {
-    width: 34px !important;
-    height: 34px !important;
-  }
-  .appbar-logo-link .logo-wordmark {
-    font-size: 6.6px !important;
-    letter-spacing: .105em !important;
-  }
   .appbar-admin-pill,
   .appbar-user-pill {
     display: none !important;
@@ -759,16 +751,6 @@ html, body { overflow-x: clip; max-width: 100vw; }
   .appbar {
     gap: 6px !important;
     padding-inline: 8px !important;
-  }
-  .appbar-logo-link .logo-original {
-    width: 68px;
-  }
-  .appbar-logo-link .logo-original .logo-mark {
-    width: 31px !important;
-    height: 31px !important;
-  }
-  .appbar-logo-link .logo-wordmark {
-    font-size: 6px !important;
   }
   .appbar-notifications .btn {
     padding-inline: 6px !important;
