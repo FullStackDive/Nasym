@@ -81,8 +81,10 @@ export const LogoMark = ({ size = 38 }: { size?: number }) => {
   const [logoSrc, setLogoSrc] = useState("/nasym-logo-original.png");
   const usingOriginal = logoSrc.endsWith(".png");
 
+  const markWidth = size * (952 / 911);
+
   return (
-    <span className="logo-mark" style={{ width: size, height: size }}>
+    <span className="logo-mark" style={{ width: markWidth, height: size }}>
       <img
         className={usingOriginal ? "logo-original-image" : undefined}
         src={logoSrc}
