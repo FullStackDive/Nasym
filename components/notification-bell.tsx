@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Icon } from "./ui";
 
@@ -27,7 +28,9 @@ const NotificationBell = () => {
   const [open, setOpen] = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
+  const [panelPos, setPanelPos] = useState({ top: 84, right: 12 });
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -46,14 +49,40 @@ const NotificationBell = () => {
     return () => clearInterval(interval);
   }, [load]);
 
-  // Close on outside click
+  // Keep the popup anchored to the bell while rendering it at document.body level.
+  // This avoids Safari/Chromium positioning bugs caused by the sticky header's backdrop-filter.
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+
+    const placePanel = () => {
+      const rect = ref.current?.getBoundingClientRect();
+      const announcementBottom = document.querySelector(".site-announcement-bar")?.getBoundingClientRect().bottom ?? 0;
+      setPanelPos({
+        top: Math.max((rect?.bottom ?? 72) + 8, announcementBottom + 8),
+        right: Math.max(12, window.innerWidth - (rect?.right ?? window.innerWidth)),
+      });
     };
+
+    placePanel();
+    window.addEventListener("resize", placePanel);
+    window.addEventListener("scroll", placePanel, { passive: true });
+
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (!ref.current?.contains(target) && !panelRef.current?.contains(target)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("resize", placePanel);
+      window.removeEventListener("scroll", placePanel);
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   const markAllRead = async () => {
@@ -93,13 +122,13 @@ const NotificationBell = () => {
         )}
       </button>
 
-      {open && (
-        <div className="notification-panel" style={{
-          position:"absolute", top:"calc(100% + 8px)", right: 0,
+      {open && typeof document !== "undefined" && createPortal(
+        <div ref={panelRef} className="notification-panel" role="dialog" aria-label="Notifications" style={{
+          position:"fixed", top: panelPos.top, right: panelPos.right,
           width: 380, maxHeight: 500,
           background:"var(--surface)", border:"1px solid var(--hairline)",
-          borderRadius: 12, boxShadow:"0 12px 32px rgba(0,0,0,0.12)",
-          zIndex: 100, overflow:"hidden",
+          borderRadius: 12, boxShadow:"0 16px 44px rgba(20,43,51,0.16)",
+          zIndex: 200, overflow:"hidden",
           display:"flex", flexDirection:"column",
         }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 16px", borderBottom:"1px solid var(--hairline)" }}>
@@ -142,7 +171,8 @@ const NotificationBell = () => {
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
