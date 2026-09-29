@@ -74,45 +74,29 @@ export const Icon = ({ name, size = 18, stroke = 1.6 }: IconProps) => {
 };
 
 /* ===== Logo =====
-   Vector lockup based on the supplied original Nasym mark:
-   charcoal N, soft-grey sweep, breeze lines, and green leaves.
-   Kept inline so it remains crisp on every device. */
+   Uses the supplied Nasym original mark as one shared asset.
+   Keeping the artwork outside the component prevents the logo from being
+   redrawn differently across header, drawer, dashboard and footer contexts. */
 export const LogoMark = ({ size = 38 }: { size?: number }) => (
   <span className="logo-mark" style={{ width: size, height: size }}>
-    <svg viewBox="0 0 100 100" width={size} height={size} fill="none" aria-hidden>
-      <path
-        d="M26 77V24l47 53V25"
-        stroke="#242223"
-        strokeWidth="8.5"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-      />
-      <path
-        d="M28 18h17c24 0 37 12 37 31 0 9-3 17-9 23"
-        stroke="#7A7D7C"
-        strokeWidth="8"
-        strokeLinecap="square"
-      />
-      <path
-        d="M27 56c15-2 26 1 35 10 7 8 12 15 20 18"
-        stroke="#7A7D7C"
-        strokeWidth="8"
-        strokeLinecap="square"
-      />
-      <path d="M13 70C35 53 52 60 87 39" stroke="#DDE7E7" strokeWidth="2.4" strokeLinecap="round"/>
-      <path d="M16 75C37 58 56 65 91 45" stroke="#C9D7D8" strokeWidth="2.2" strokeLinecap="round"/>
-      <path d="M18 80C40 64 59 70 92 52" stroke="#B9CDCF" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M65 48c5-8 10-7 13-10-1 7-4 12-12 14-2-1-2-2-1-4Z" fill="#73A94B"/>
-      <path d="M33 71c4-7 8-8 11-10 0 7-2 12-8 16-2-1-3-3-3-6Z" fill="#8DBF58"/>
-    </svg>
+    <img
+      src="/nasym-logo-mark.svg"
+      alt=""
+      aria-hidden="true"
+      width={size}
+      height={size}
+      draggable={false}
+    />
   </span>
 );
 
 export const Logo = ({ size = 38, compact = false }: { size?: number; compact?: boolean }) => (
-  <div className={compact ? "logo logo-compact" : "logo logo-original"} title="Nasym-Ur-Rahmah Institute" aria-label="Nasym-Ur-Rahmah Institute">
+  <div className="logo" aria-label="Nasym-Ur-Rahmah Institute">
     <LogoMark size={size} />
     {!compact && (
-      <span className="serif logo-wordmark" aria-hidden="true">NASYM UR RAHMAH</span>
+      <span className="serif logo-name" style={{ fontSize: 17, fontWeight: 600, letterSpacing: "0.025em", color: "var(--ink)", whiteSpace: "nowrap" }}>
+        Nasym-Ur-Rahmah Institute
+      </span>
     )}
   </div>
 );
