@@ -78,15 +78,11 @@ export const Icon = ({ name, size = 18, stroke = 1.6 }: IconProps) => {
    Keeping the artwork outside the component prevents the logo from being
    redrawn differently across header, drawer, dashboard and footer contexts. */
 export const LogoMark = ({ size = 38 }: { size?: number }) => {
-  const [logoSrc, setLogoSrc] = useState("/nasym-logo-original.png");
-  const usingOriginal = logoSrc.endsWith(".png");
-
-  const markWidth = size * (952 / 911);
+  const [logoSrc, setLogoSrc] = useState("/nasym-logo-mark-exact.svg");
 
   return (
-    <span className="logo-mark" style={{ width: markWidth, height: size }}>
+    <span className="logo-mark" style={{ width: size, height: size }}>
       <img
-        className={usingOriginal ? "logo-original-image" : undefined}
         src={logoSrc}
         alt=""
         aria-hidden="true"

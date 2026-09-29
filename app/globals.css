@@ -344,19 +344,6 @@ body {
   overflow: hidden;
 }
 .logo-mark img { width: 100%; height: 100%; object-fit: contain; }
-.logo-mark img.logo-original-image {
-  position: absolute;
-  /* Exact pixel crop of the supplied 1311×1536 PNG.
-     Visible monogram bounds are x 177–1129 and y 239–1150 (952×911).
-     These percentages preserve the source pixels without stretching or redrawing. */
-  width: 137.710084%;
-  height: 168.605927%;
-  max-width: none;
-  left: -18.592437%;
-  top: -26.234907%;
-  transform: none;
-  object-fit: fill;
-}
 
 /* Scrolling announcement strip directly below the sticky header */
 .site-announcement-bar {
