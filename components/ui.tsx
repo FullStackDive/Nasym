@@ -175,7 +175,7 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
   return (
     <>
       <div className="appbar">
-        <span style={{ cursor: "pointer" }} onClick={() => router.push(role === "ADMIN" ? "/admin" : "/")}>
+        <span className="appbar-logo-link" style={{ cursor: "pointer" }} onClick={() => router.push(role === "ADMIN" ? "/admin" : "/")}>
           <Logo />
         </span>
         <nav style={{ marginLeft: 12 }}>
@@ -193,7 +193,7 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
             </span>
           </div>
         )}
-        <NotificationBell />
+        <div className="appbar-notifications"><NotificationBell /></div>
         {authed && isAdmin && role !== "ADMIN" && (
           <button
             onClick={() => router.push("/admin")}
@@ -241,11 +241,12 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
           </button>
         )}
         {authed && displayName ? (
-          <span style={{ cursor: "pointer" }} onClick={() => router.push("/profile")} title={displayName}>
+          <span className="appbar-avatar" style={{ cursor: "pointer" }} onClick={() => router.push("/profile")} title={displayName}>
             <Avatar name={displayName} size={36} />
           </span>
         ) : (
           <span
+            className="appbar-avatar"
             style={{
               cursor: "pointer",
               width: 36, height: 36, borderRadius: 999,
