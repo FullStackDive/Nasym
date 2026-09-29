@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Icon, LogoMark, AppBar } from "./ui";
 import { Breeze, KhatamPattern, LeafSprig } from "./motifs";
-import { SOCIAL_LINKS, ENROLMENT_FORM_URL } from "@/lib/site";
+import { SOCIAL_LINKS, ENROLMENT_FORM_URL, INTRODUCTION_POST, SITE_NAME } from "@/lib/site";
 import { ayahOfTheDay } from "@/lib/ayahs";
 
 type UpcomingClass = {
@@ -104,7 +104,7 @@ export default function HomeClient() {
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "6px 14px 6px 6px", borderRadius: 999, background: "var(--surface)", border: "1px solid var(--hairline)", marginBottom: 26 }}>
                 <span style={{ width: 24, height: 24, borderRadius: 999, background: "var(--brand-700)", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icon name="wind" size={13} /></span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-2)", letterSpacing: "0.02em" }}>nasym · the gentle breeze of mercy</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-2)", letterSpacing: "0.02em" }}>{SITE_NAME} · the gentle breeze of mercy</span>
               </div>
               <h1 className="serif hero-title" style={{ fontSize: 76, fontWeight: 500, letterSpacing: "-0.025em", lineHeight: 1.0, margin: "8px 0 0", color: "var(--ink)" }}>
                 Where the breeze<br />
@@ -139,6 +139,25 @@ export default function HomeClient() {
                     <span style={{ fontSize: 12, color: "var(--ink-3)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>{ayah.ref}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="intro-section" style={{ maxWidth: 1180, margin: "0 auto", padding: "64px 32px 20px" }}>
+          <div className="surface-2 intro-card" style={{ position: "relative", overflow: "hidden", padding: 34 }}>
+            <div aria-hidden style={{ position: "absolute", inset: 0, background: "linear-gradient(120deg, rgba(84,140,146,0.07), transparent 48%)" }} />
+            <Breeze opacity={0.12} color="var(--brand-500)" />
+            <div className="responsive-grid" style={{ position: "relative", display: "grid", gridTemplateColumns: "auto 1fr", gap: 24, alignItems: "start" }}>
+              <div className="intro-logo-badge" style={{ width: 76, height: 76, borderRadius: 22, background: "white", border: "1px solid var(--hairline)", boxShadow: "var(--shadow-1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <LogoMark size={58} />
+              </div>
+              <div>
+                <div className="eyebrow">{INTRODUCTION_POST.eyebrow}</div>
+                <h2 className="serif" style={{ fontSize: 36, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 16px" }}>{INTRODUCTION_POST.title}</h2>
+                {INTRODUCTION_POST.paragraphs.map((paragraph) => (
+                  <p key={paragraph} style={{ margin: "0 0 12px", color: "var(--ink-2)", lineHeight: 1.75, fontSize: 15 }}>{paragraph}</p>
+                ))}
               </div>
             </div>
           </div>
@@ -219,13 +238,13 @@ export default function HomeClient() {
                 </div>
               ) : (
                 <>
-                  <div className="card card-pad" style={{ background: "linear-gradient(160deg, var(--brand-700), var(--brand-900))", color: "var(--surface)", border: "none", position: "relative", overflow: "hidden", cursor: "pointer" }} onClick={() => router.push("/news")}>
-                    <Breeze opacity={0.18} color="white" />
+                  <div className="card card-pad" style={{ background: "linear-gradient(145deg, var(--surface), var(--brand-50))", color: "var(--ink)", border: "1px solid var(--brand-100)", position: "relative", overflow: "hidden", cursor: "pointer", boxShadow: "var(--shadow-1)" }} onClick={() => router.push("/news")}>
+                    <Breeze opacity={0.12} color="var(--brand-500)" />
                     <div style={{ position: "relative" }}>
-                      {pinned.pinned && <span className="chip" style={{ background: "rgba(255,255,255,0.16)", color: "white", borderColor: "rgba(255,255,255,0.25)" }}>📌 Pinned</span>}
+                      {pinned.pinned && <span className="chip chip-brand">📌 Pinned</span>}
                       <h3 className="serif" style={{ margin: "14px 0 8px", fontSize: 22, fontWeight: 500, letterSpacing: "-0.01em" }}>{pinned.title}</h3>
-                      <p style={{ margin: 0, fontSize: 14, color: "rgba(255,255,255,0.82)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{pinned.body}</p>
-                      <button className="btn btn-mint btn-sm" style={{ marginTop: 18 }}>Read more <Icon name="arrow-right" size={12} /></button>
+                      <p style={{ margin: 0, fontSize: 14, color: "var(--ink-2)", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{pinned.body}</p>
+                      <button className="btn btn-secondary btn-sm" style={{ marginTop: 18 }}>Read more <Icon name="arrow-right" size={12} /></button>
                     </div>
                   </div>
                   {otherNews.map(n => (
@@ -241,25 +260,25 @@ export default function HomeClient() {
           </div>
         </section>
 
-        <section style={{ background: "var(--brand-900)", color: "var(--surface)", padding: "56px 32px", position: "relative", overflow: "hidden" }}>
-          <Breeze opacity={0.18} color="var(--mint-300)" />
+        <section style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.96), var(--brand-50))", color: "var(--ink)", padding: "56px 32px", position: "relative", overflow: "hidden", borderTop: "1px solid var(--hairline)" }}>
+          <Breeze opacity={0.10} color="var(--brand-500)" />
           <div style={{ position: "relative", maxWidth: 1180, margin: "0 auto" }}>
             <div className="footer-grid" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 40 }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}><LogoMark size={32} /></span>
-                  <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: "0.04em" }}>NASYM UR RAHMAH</div>
+                  <div className="serif" style={{ fontSize: 22, fontWeight: 500, letterSpacing: "0.02em" }}>{SITE_NAME}</div>
                 </div>
-                <p style={{ marginTop: 16, color: "rgba(255,255,255,0.65)", fontSize: 13, maxWidth: 480 }}>An open Islamic learning space. Free for students. Built with sincerity.</p>
+                <p style={{ marginTop: 16, color: "var(--ink-3)", fontSize: 13, maxWidth: 480 }}>An open Islamic learning space. Free for students. Built with sincerity.</p>
                 <div style={{ display: "flex", gap: 10, marginTop: 18, flexWrap: "wrap", alignItems: "center" }}>
                   {sessionStatus === "authenticated" ? (
                     <button
                       onClick={() => router.push("/profile")}
                       className="btn"
                       style={{
-                        background: "rgba(255,255,255,0.08)",
-                        color: "var(--surface)",
-                        borderColor: "rgba(255,255,255,0.3)",
+                        background: "var(--surface)",
+                        color: "var(--ink)",
+                        borderColor: "var(--hairline-2)",
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 8,
@@ -275,14 +294,14 @@ export default function HomeClient() {
                       </span>
                     </button>
                   ) : sessionStatus === "unauthenticated" ? (
-                    <button onClick={() => router.push("/auth/signin")} className="btn" style={{ background: "transparent", color: "var(--surface)", borderColor: "rgba(255,255,255,0.3)" }}>Sign in</button>
+                    <button onClick={() => router.push("/auth/signin")} className="btn btn-secondary">Sign in</button>
                   ) : null}
                   <a href={ENROLMENT_FORM_URL} target="_blank" rel="noopener noreferrer" className="btn btn-mint">Apply for admission</a>
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", fontWeight: 600, marginBottom: 14 }}>Connect</div>
+                <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600, marginBottom: 14 }}>Connect</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <SocialLink href={SOCIAL_LINKS.instagram} label="Instagram" handle="@nasymurrahmah" />
                   <SocialLink href={SOCIAL_LINKS.facebook} label="Facebook" handle="Nasym-ur-Rahmah" />
@@ -290,7 +309,7 @@ export default function HomeClient() {
               </div>
 
               <div>
-                <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", fontWeight: 600, marginBottom: 14 }}>Learn</div>
+                <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600, marginBottom: 14 }}>Learn</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <FooterLink onClick={() => router.push("/courses")}>Courses</FooterLink>
                   <FooterLink onClick={() => router.push("/lessons")}>Lessons</FooterLink>
@@ -301,9 +320,9 @@ export default function HomeClient() {
               </div>
             </div>
 
-            <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.12)", margin: "36px 0 22px" }} />
-            <div style={{ display: "flex", justifyContent: "space-between", color: "rgba(255,255,255,0.55)", fontSize: 12, flexWrap: "wrap", gap: 10 }}>
-              <span>© {new Date().getFullYear()} Nasym-ur-Rahmah</span>
+            <hr style={{ border: "none", borderTop: "1px solid var(--hairline)", margin: "36px 0 22px" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", color: "var(--ink-3)", fontSize: 12, flexWrap: "wrap", gap: 10 }}>
+              <span>© {new Date().getFullYear()} {SITE_NAME}</span>
               <span className="serif" style={{ fontStyle: "italic" }}>“And remind, for indeed, the reminder benefits the believers.” (51:55)</span>
             </div>
           </div>
@@ -315,12 +334,12 @@ export default function HomeClient() {
 }
 
 const SocialLink = ({ href, label, handle }: { href: string; label: string; handle: string }) => (
-  <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "var(--surface)", textDecoration: "none", display: "flex", flexDirection: "column", gap: 2 }}>
+  <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "var(--ink)", textDecoration: "none", display: "flex", flexDirection: "column", gap: 2 }}>
     <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
-    <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{handle}</span>
+    <span style={{ fontSize: 12, color: "var(--ink-3)" }}>{handle}</span>
   </a>
 );
 
 const FooterLink = ({ children, onClick }: { children: React.ReactNode; onClick: () => void }) => (
-  <a onClick={onClick} style={{ color: "rgba(255,255,255,0.78)", fontSize: 14, cursor: "pointer", textDecoration: "none" }}>{children}</a>
+  <a onClick={onClick} style={{ color: "var(--ink-2)", fontSize: 14, cursor: "pointer", textDecoration: "none" }}>{children}</a>
 );
