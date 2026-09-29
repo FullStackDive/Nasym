@@ -4,6 +4,7 @@ import { ReactNode, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Icon, Avatar, AppBar, Stat } from "./ui";
+import { SITE_NAME } from "@/lib/site";
 
 type IconName = "home" | "book" | "video" | "users" | "user" | "newspaper" | "bell" | "settings" | "search" | "play" | "pause" | "mic" | "mic-off" | "cam" | "cam-off" | "hand" | "send" | "rec" | "chat" | "poll" | "notes" | "trophy" | "flame" | "star" | "leaf" | "calendar" | "clock" | "check" | "plus" | "filter" | "more" | "shield" | "globe" | "lock" | "mail" | "moon" | "arrow-right" | "trend" | "download" | "upload" | "edit" | "trash" | "eye" | "key" | "wind";
 
@@ -265,7 +266,7 @@ const AdminOverview = ({ adminName, onNav }: { adminName: string; onNav: (k: str
             {greeting}, {adminName}
           </h1>
           <p style={{ color:"var(--ink-3)", marginTop: 6 }}>
-            Here&apos;s what&apos;s happening across Nasym Ur Rahmah today.
+            Here&apos;s what&apos;s happening across {SITE_NAME} today.
           </p>
         </div>
         <div style={{ display:"flex", gap: 8, flexWrap:"wrap" }}>
