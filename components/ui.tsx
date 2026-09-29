@@ -109,12 +109,10 @@ export const LogoMark = ({ size = 38 }: { size?: number }) => (
 );
 
 export const Logo = ({ size = 38, compact = false }: { size?: number; compact?: boolean }) => (
-  <div className="logo">
+  <div className={compact ? "logo logo-compact" : "logo logo-original"} title="Nasym-Ur-Rahmah Institute" aria-label="Nasym-Ur-Rahmah Institute">
     <LogoMark size={size} />
     {!compact && (
-      <span className="serif logo-name" style={{ fontSize: 17, fontWeight: 600, letterSpacing: "0.025em", color: "var(--ink)", whiteSpace: "nowrap" }}>
-        Nasym-Ur-Rahmah Institute
-      </span>
+      <span className="serif logo-wordmark" aria-hidden="true">NASYM UR RAHMAH</span>
     )}
   </div>
 );
