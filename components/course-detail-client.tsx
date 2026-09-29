@@ -493,31 +493,31 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
       <AppBar active={navTab} onNav={setNavTab} />
       <div className="app-scroll">
         {/* Hero */}
-        <div style={{ position:"relative", height: 220, background: course.coverUrl ? undefined : "linear-gradient(135deg, var(--brand-700), var(--brand-900))", overflow:"hidden" }}>
+        <div className="course-hero" style={{ position:"relative", height: 220, background: course.coverUrl ? undefined : "linear-gradient(135deg, #ffffff 0%, var(--brand-50) 58%, var(--mint-bg) 100%)", overflow:"hidden", borderBottom: "1px solid var(--hairline)" }}>
           {course.coverUrl
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={course.coverUrl} alt={course.title} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-            : <KhatamPattern opacity={0.14} color="white" style={{ position:"absolute", inset:0 }} />
+            : <KhatamPattern opacity={0.08} color="var(--brand-700)" style={{ position:"absolute", inset:0 }} />
           }
-          <div style={{ position:"absolute", inset:0, background:"linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.55))" }} />
-          <div style={{ position:"absolute", bottom: 24, left: 36, right: 36, color:"white" }}>
+          {course.coverUrl && <div style={{ position:"absolute", inset:0, background:"linear-gradient(180deg, transparent 38%, rgba(0,0,0,0.58))" }} />}
+          <div style={{ position:"absolute", bottom: 24, left: 36, right: 36, color: course.coverUrl ? "white" : "var(--ink)" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-              {!course.isPublished && <span className="chip" style={{ background:"rgba(255,255,255,0.15)", color:"white", borderColor:"transparent" }}>Draft</span>}
-              {course.isOpenForEnrolment && <span className="chip" style={{ background:"rgba(124,193,121,0.85)", color:"white", borderColor:"transparent" }}>Open for enrolment</span>}
-              {course.isArchived && <span className="chip" style={{ background:"rgba(0,0,0,0.4)", color:"white", borderColor:"transparent" }}>Past batch</span>}
+              {!course.isPublished && <span className="chip" style={course.coverUrl ? { background:"rgba(255,255,255,0.16)", color:"white", borderColor:"transparent" } : undefined}>Draft</span>}
+              {course.isOpenForEnrolment && <span className="chip chip-mint">Open for enrolment</span>}
+              {course.isArchived && <span className="chip chip-brand">Past batch</span>}
             </div>
-            <h1 style={{ fontSize: 32, fontWeight: 800, margin: 0, textShadow:"0 2px 8px rgba(0,0,0,0.4)" }}>{course.title}</h1>
+            <h1 style={{ fontSize: 32, fontWeight: 800, margin: 0, textShadow: course.coverUrl ? "0 2px 8px rgba(0,0,0,0.4)" : "none" }}>{course.title}</h1>
             <div style={{ fontSize: 14, opacity: 0.85, marginTop: 4 }}>by {course.owner.name}</div>
           </div>
         </div>
 
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 32px 64px" }}>
           {/* Tab nav */}
-          <div style={{ display:"flex", gap: 4, borderBottom:"1px solid var(--hairline)", marginBottom: 28, marginTop: 12 }}>
+          <div className="course-tabs" role="tablist" aria-label="Course sections" style={{ display:"flex", gap: 4, borderBottom:"1px solid var(--hairline)", marginBottom: 28, marginTop: 12 }}>
             {tabs.map(t => (
               <button
                 key={t.key}
-                className="btn btn-ghost"
+                className="btn btn-ghost course-tab-button"
                 style={{
                   borderRadius: "8px 8px 0 0",
                   borderBottom: tab === t.key ? "2px solid var(--brand-700)" : "2px solid transparent",
