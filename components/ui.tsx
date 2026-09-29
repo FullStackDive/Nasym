@@ -77,18 +77,25 @@ export const Icon = ({ name, size = 18, stroke = 1.6 }: IconProps) => {
    Uses the supplied Nasym original mark as one shared asset.
    Keeping the artwork outside the component prevents the logo from being
    redrawn differently across header, drawer, dashboard and footer contexts. */
-export const LogoMark = ({ size = 38 }: { size?: number }) => (
-  <span className="logo-mark" style={{ width: size, height: size }}>
-    <img
-      src="/nasym-logo-mark.svg"
-      alt=""
-      aria-hidden="true"
-      width={size}
-      height={size}
-      draggable={false}
-    />
-  </span>
-);
+export const LogoMark = ({ size = 38 }: { size?: number }) => {
+  const [logoSrc, setLogoSrc] = useState("/nasym-logo-original.png");
+  const usingOriginal = logoSrc.endsWith(".png");
+
+  return (
+    <span className="logo-mark" style={{ width: size, height: size }}>
+      <img
+        className={usingOriginal ? "logo-original-image" : undefined}
+        src={logoSrc}
+        alt=""
+        aria-hidden="true"
+        width={size}
+        height={size}
+        draggable={false}
+        onError={() => setLogoSrc("/nasym-logo-mark.svg")}
+      />
+    </span>
+  );
+};
 
 export const Logo = ({ size = 38, compact = false }: { size?: number; compact?: boolean }) => (
   <div className="logo" aria-label="Nasym-Ur-Rahmah Institute">
