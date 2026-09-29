@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, X } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, Logo } from "@/components/ui";
 
 export function Navbar() {
   const { data } = useSession();
@@ -32,11 +32,8 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-brand-100/70 bg-white/75 backdrop-blur-md shadow-[0_1px_0_rgba(16,185,129,0.06)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2.5 font-extrabold text-slate-900" onClick={close}>
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-glow ring-1 ring-brand-700/30">
-            <span className="text-lg leading-none">ن</span>
-          </span>
-          <span className="tracking-tight">Nasym-Ur-Rahmah Institute</span>
+        <Link href="/" className="flex items-center font-extrabold text-slate-900" onClick={close}>
+          <Logo size={36} />
         </Link>
 
         {/* Desktop nav */}
