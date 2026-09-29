@@ -86,7 +86,7 @@ export const AdminShell = ({ active, onNav, children }: { active: string; onNav?
           <div style={{ fontSize: 11, color:"var(--ink-3)" }}>{email}</div>
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto" }}>{children}</div>
+      <div className="admin-main-content" style={{ flex: 1, overflowY: "auto" }}>{children}</div>
     </div>
   </div>
   );
