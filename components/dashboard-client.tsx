@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Icon, AppBar, Stat } from "./ui";
+import { Icon, AppBar, Stat, LogoMark } from "./ui";
 import { Breeze, KhatamPattern, LeafSprig } from "./motifs";
+import { INTRODUCTION_POST, SITE_NAME } from "@/lib/site";
 
 type Course = {
   id: string;
@@ -38,6 +39,7 @@ const DashboardClient = () => {
   const router = useRouter();
   const { data: session, status: authStatus } = useSession();
   const [tab, setTab] = useState("dashboard");
+  const [dashboardView, setDashboardView] = useState<"dashboard" | "about">("dashboard");
   const [courses, setCourses] = useState<Course[]>([]);
   const [quizSummary, setQuizSummary] = useState<QuizSummary | null>(null);
   const [lessonsCompleted, setLessonsCompleted] = useState(0);
@@ -110,6 +112,47 @@ const DashboardClient = () => {
       <AppBar active={tab} onNav={setTab} />
       <div className="app-scroll">
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 32px 64px" }}>
+          <div className="dashboard-view-tabs" role="tablist" aria-label="Dashboard sections">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={dashboardView === "dashboard"}
+              className={dashboardView === "dashboard" ? "active" : ""}
+              onClick={() => setDashboardView("dashboard")}
+            >
+              Dashboard
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={dashboardView === "about"}
+              className={dashboardView === "about" ? "active" : ""}
+              onClick={() => setDashboardView("about")}
+            >
+              About Us
+            </button>
+          </div>
+
+          {dashboardView === "about" ? (
+            <div className="surface-2 dashboard-about" style={{ position: "relative", overflow: "hidden", padding: 34 }}>
+              <div aria-hidden style={{ position: "absolute", inset: 0, background: "linear-gradient(125deg, rgba(84,140,146,0.08), transparent 52%)" }} />
+              <Breeze opacity={0.12} color="var(--brand-500)" />
+              <div className="responsive-grid" style={{ position: "relative", display: "grid", gridTemplateColumns: "96px 1fr", gap: 28, alignItems: "start" }}>
+                <div style={{ width: 88, height: 88, borderRadius: 24, background: "white", border: "1px solid var(--hairline)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-1)" }}>
+                  <LogoMark size={68} />
+                </div>
+                <div>
+                  <div className="eyebrow">{INTRODUCTION_POST.eyebrow}</div>
+                  <h1 className="serif" style={{ fontSize: 40, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 8px" }}>{INTRODUCTION_POST.title}</h1>
+                  <p style={{ margin: "0 0 24px", color: "var(--brand-700)", fontWeight: 700, fontSize: 13 }}>{SITE_NAME}</p>
+                  {INTRODUCTION_POST.paragraphs.map((paragraph) => (
+                    <p key={paragraph} style={{ margin: "0 0 14px", color: "var(--ink-2)", lineHeight: 1.8, fontSize: 15 }}>{paragraph}</p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom: 28, flexWrap: "wrap", gap: 14 }}>
             <div>
               <div className="eyebrow">Assalāmu ʿalaykum</div>
@@ -131,14 +174,14 @@ const DashboardClient = () => {
               padding: 22,
               marginBottom: 24,
               borderRadius: 18,
-              background: "linear-gradient(135deg, var(--brand-800), var(--brand-900))",
-              color: "white",
-              border: "1px solid var(--brand-700)",
+              background: "linear-gradient(135deg, var(--surface), var(--brand-50))",
+              color: "var(--ink)",
+              border: "1px solid var(--brand-100)",
             }}>
-              <KhatamPattern opacity={0.06} color="white" />
+              <KhatamPattern opacity={0.05} color="var(--brand-700)" />
               <div style={{ position: "relative", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
-                  <span style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(255,255,255,0.14)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: 44, height: 44, borderRadius: 12, background: "var(--brand-50)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon name="shield" size={22} />
                   </span>
                   <div>
@@ -150,7 +193,7 @@ const DashboardClient = () => {
                 <button
                   onClick={() => router.push("/admin")}
                   className="btn"
-                  style={{ background: "white", color: "var(--brand-800)", fontWeight: 700 }}
+                  style={{ background: "var(--brand-700)", color: "white", fontWeight: 700 }}
                 >
                   Open admin panel <Icon name="arrow-right" size={14} />
                 </button>
@@ -166,9 +209,9 @@ const DashboardClient = () => {
                       gap: 6,
                       padding: "7px 12px",
                       borderRadius: 999,
-                      background: "rgba(255,255,255,0.12)",
-                      color: "white",
-                      border: "1px solid rgba(255,255,255,0.18)",
+                      background: "var(--surface)",
+                      color: "var(--brand-800)",
+                      border: "1px solid var(--brand-100)",
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: "pointer",
@@ -274,6 +317,8 @@ const DashboardClient = () => {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>
