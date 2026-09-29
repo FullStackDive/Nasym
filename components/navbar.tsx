@@ -3,20 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, Moon, Sun, X } from "lucide-react";
-import { Button } from "@/components/ui";
-import { useTheme } from "@/components/theme-provider";
+import { Menu, X } from "lucide-react";
+import { Button, Logo } from "@/components/ui";
 
 export function Navbar() {
   const { data } = useSession();
   const role = (data as any)?.user?.role;
   const [open, setOpen] = useState(false);
-  const { theme, toggle } = useTheme();
 
   const close = () => setOpen(false);
 
   const linkCls =
-    "text-sm font-semibold text-slate-700 hover:text-brand-700 dark:text-slate-300 dark:hover:text-brand-300 transition-colors";
+    "text-sm font-semibold text-slate-700 hover:text-brand-700 transition-colors";
 
   const navLinks = (
     <>
@@ -32,13 +30,10 @@ export function Navbar() {
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-brand-100/70 bg-white/75 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/70 shadow-[0_1px_0_rgba(16,185,129,0.06)]">
+    <header className="sticky top-0 z-40 border-b border-brand-100/70 bg-white/75 backdrop-blur-md shadow-[0_1px_0_rgba(16,185,129,0.06)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2.5 font-extrabold text-slate-900 dark:text-slate-100" onClick={close}>
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-gradient text-white shadow-glow ring-1 ring-brand-700/30">
-            <span className="text-lg leading-none">ن</span>
-          </span>
-          <span className="tracking-tight">Nasym-ur-Rahmah</span>
+        <Link href="/" className="flex items-center font-extrabold text-slate-900" onClick={close}>
+          <Logo size={36} />
         </Link>
 
         {/* Desktop nav */}
@@ -48,24 +43,17 @@ export function Navbar() {
 
         {/* Desktop auth */}
         <div className="hidden items-center gap-2 md:flex">
-          <button
-            onClick={toggle}
-            className="rounded-xl p-2 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            aria-label="Toggle dark mode"
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
           {!data ? (
             <>
-              <Link href="/auth/signin" className="text-sm font-semibold text-slate-700 hover:text-brand-700 dark:text-slate-300 dark:hover:text-brand-300">Sign in</Link>
+              <Link href="/auth/signin" className="text-sm font-semibold text-slate-700 hover:text-brand-700">Sign in</Link>
               <Link href="/auth/register">
                 <Button>Register</Button>
               </Link>
             </>
           ) : (
             <>
-              <span className="text-sm text-slate-600 dark:text-slate-400">
-                {data.user?.name} <span className="text-slate-300 dark:text-slate-600">•</span>{" "}
+              <span className="text-sm text-slate-600">
+                {data.user?.name} <span className="text-slate-300">•</span>{" "}
                 <span className="text-brand-700 dark:text-brand-300">{role}</span>
               </span>
               <Link href="/profile">
@@ -81,14 +69,7 @@ export function Navbar() {
         {/* Mobile controls */}
         <div className="flex items-center gap-1 md:hidden">
           <button
-            onClick={toggle}
-            className="rounded-xl p-2 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            aria-label="Toggle dark mode"
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          <button
-            className="rounded-xl p-2 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-xl p-2 text-slate-700 hover:bg-slate-100"
             onClick={() => setOpen((o) => !o)}
             aria-label={open ? "Close menu" : "Open menu"}
           >
@@ -99,18 +80,18 @@ export function Navbar() {
 
       {/* Mobile drawer */}
       {open && (
-        <div className="md:hidden absolute left-0 right-0 top-full z-50 border-b border-slate-100 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+        <div className="md:hidden absolute left-0 right-0 top-full z-50 border-b border-slate-100 bg-white shadow-lg">
           <nav className="flex flex-col gap-1 px-4 py-4">
-            <Link href="/classes" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">Classes</Link>
-            <Link href="/lessons" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">Lessons</Link>
-            <Link href="/quizzes" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">Quizzes</Link>
-            <Link href="/reports" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">Report</Link>
-            <Link href="/news" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">News</Link>
-            <Link href="/reminders" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">Reminders</Link>
-            {data && <Link href="/dashboard" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">Dashboard</Link>}
-            {data && role === "ADMIN" && <Link href="/admin" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">Admin</Link>}
+            <Link href="/classes" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Classes</Link>
+            <Link href="/lessons" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Lessons</Link>
+            <Link href="/quizzes" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Quizzes</Link>
+            <Link href="/reports" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Report</Link>
+            <Link href="/news" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">News</Link>
+            <Link href="/reminders" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Reminders</Link>
+            {data && <Link href="/dashboard" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Dashboard</Link>}
+            {data && role === "ADMIN" && <Link href="/admin" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Admin</Link>}
           </nav>
-          <div className="border-t border-slate-100 px-4 py-4 dark:border-slate-800">
+          <div className="border-t border-slate-100 px-4 py-4">
             {!data ? (
               <div className="flex gap-2">
                 <Link href="/auth/signin" onClick={close} className="flex-1">
@@ -122,7 +103,7 @@ export function Navbar() {
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-sm text-slate-600 dark:text-slate-400">{data.user?.name} • {role}</p>
+                <p className="text-sm text-slate-600">{data.user?.name} • {role}</p>
                 <div className="flex gap-2">
                   <Link href="/profile" onClick={close} className="flex-1">
                     <Button variant="ghost" className="w-full">Profile</Button>

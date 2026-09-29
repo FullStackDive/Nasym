@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import NotificationBell from "./notification-bell";
 
 /* ===== Icon set ===== */
@@ -73,16 +73,37 @@ export const Icon = ({ name, size = 18, stroke = 1.6 }: IconProps) => {
   }
 };
 
-/* ===== Logo ===== */
+/* ===== Logo =====
+   Vector lockup based on the supplied original Nasym mark:
+   charcoal N, soft-grey sweep, breeze lines, and green leaves.
+   Kept inline so it remains crisp on every device. */
 export const LogoMark = ({ size = 38 }: { size?: number }) => (
   <span className="logo-mark" style={{ width: size, height: size }}>
-    <svg viewBox="0 0 64 64" width={size} height={size} fill="none" aria-hidden>
-      <path d="M4 38 Q 22 30 32 36 T 60 32" stroke="var(--c-mid)" strokeOpacity="0.45" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-      <path d="M6 46 Q 22 40 34 44 T 60 42" stroke="var(--c-mid)" strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />
-      <text x="6" y="46" fontFamily="Cormorant Garamond, Georgia, serif" fontSize="48" fontWeight="600" fill="var(--brand-700)" letterSpacing="-1">R</text>
-      <text x="28" y="46" fontFamily="Cormorant Garamond, Georgia, serif" fontSize="48" fontWeight="500" fill="var(--c-mid)" letterSpacing="-1">N</text>
-      <path d="M44 28 q 4 -2 6 1 q -2 4 -6 -1 z" fill="#7BA85C" />
-      <path d="M22 36 q 3 -1.5 5 1 q -1.5 3 -5 -1 z" fill="#9CC078" />
+    <svg viewBox="0 0 100 100" width={size} height={size} fill="none" aria-hidden>
+      <path
+        d="M26 77V24l47 53V25"
+        stroke="#242223"
+        strokeWidth="8.5"
+        strokeLinecap="square"
+        strokeLinejoin="miter"
+      />
+      <path
+        d="M28 18h17c24 0 37 12 37 31 0 9-3 17-9 23"
+        stroke="#7A7D7C"
+        strokeWidth="8"
+        strokeLinecap="square"
+      />
+      <path
+        d="M27 56c15-2 26 1 35 10 7 8 12 15 20 18"
+        stroke="#7A7D7C"
+        strokeWidth="8"
+        strokeLinecap="square"
+      />
+      <path d="M13 70C35 53 52 60 87 39" stroke="#DDE7E7" strokeWidth="2.4" strokeLinecap="round"/>
+      <path d="M16 75C37 58 56 65 91 45" stroke="#C9D7D8" strokeWidth="2.2" strokeLinecap="round"/>
+      <path d="M18 80C40 64 59 70 92 52" stroke="#B9CDCF" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M65 48c5-8 10-7 13-10-1 7-4 12-12 14-2-1-2-2-1-4Z" fill="#73A94B"/>
+      <path d="M33 71c4-7 8-8 11-10 0 7-2 12-8 16-2-1-3-3-3-6Z" fill="#8DBF58"/>
     </svg>
   </span>
 );
@@ -91,7 +112,9 @@ export const Logo = ({ size = 38, compact = false }: { size?: number; compact?: 
   <div className="logo">
     <LogoMark size={size} />
     {!compact && (
-      <span className="serif" style={{ fontSize: 17, fontWeight: 600, letterSpacing: "0.04em", color: "var(--ink)", whiteSpace: "nowrap" }}>NASYM UR RAHMAH</span>
+      <span className="serif logo-name" style={{ fontSize: 17, fontWeight: 600, letterSpacing: "0.025em", color: "var(--ink)", whiteSpace: "nowrap" }}>
+        Nasym-Ur-Rahmah Institute
+      </span>
     )}
   </div>
 );
@@ -148,6 +171,7 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
   const sessionRole = (session?.user as { role?: string } | undefined)?.role;
   const isAdmin = sessionRole === "ADMIN";
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [siteAnnouncement, setSiteAnnouncement] = useState<{ title: string; body?: string } | null>(null);
   const hiddenPages = ((session?.user as { hiddenPages?: string[] } | undefined)?.hiddenPages ?? []);
   const studentItems: [string, string][] = [["home", "Home"], ["dashboard", "Dashboard"], ["classes", "Classes"], ["lessons", "Lessons"], ["news", "News"]]
     .filter(([k]) => !hiddenPages.includes(k)) as [string, string][];
@@ -164,6 +188,21 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
     onNav?.(k);
     setDrawerOpen(false);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/announcement")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (cancelled || !data?.announcement?.title) return;
+        setSiteAnnouncement({
+          title: data.announcement.title,
+          body: data.announcement.body,
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -268,6 +307,23 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
         </button>
       </div>
 
+      {siteAnnouncement && (
+        <button
+          type="button"
+          className="site-announcement-bar"
+          onClick={() => router.push("/news")}
+          aria-label="Open announcements"
+        >
+          <span className="site-announcement-label"><Icon name="bell" size={12} /> Announcement</span>
+          <span className="site-announcement-window">
+            <span className="site-announcement-track">
+              <span>{siteAnnouncement.title}{siteAnnouncement.body ? ` — ${siteAnnouncement.body}` : ""}</span>
+              <span aria-hidden>{siteAnnouncement.title}{siteAnnouncement.body ? ` — ${siteAnnouncement.body}` : ""}</span>
+            </span>
+          </span>
+        </button>
+      )}
+
       {drawerOpen && (
         <>
           <div className="mobile-drawer-overlay" onClick={() => setDrawerOpen(false)} />
@@ -308,7 +364,18 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
               </a>
             )}
             {authed && displayName ? (
-              <a onClick={() => { router.push("/profile"); setDrawerOpen(false); }}>Profile · {displayName}</a>
+              <>
+                <a onClick={() => { router.push("/profile"); setDrawerOpen(false); }}>Profile · {displayName}</a>
+                <a
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    signOut({ callbackUrl: "/" });
+                  }}
+                  style={{ color: "var(--danger)" }}
+                >
+                  Sign out
+                </a>
+              </>
             ) : (
               <a onClick={() => { router.push("/auth/signin"); setDrawerOpen(false); }}>Sign in</a>
             )}
