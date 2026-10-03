@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 
 type BlogArticleContentProps = {
   body: string;
@@ -12,7 +12,7 @@ function splitBlocks(body: string) {
 
 export default function BlogArticleContent({ body }: BlogArticleContentProps) {
   const lines = splitBlocks(body);
-  const nodes: React.ReactNode[] = [];
+  const nodes: ReactNode[] = [];
   let paragraph: string[] = [];
   let bullets: string[] = [];
 
