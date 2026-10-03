@@ -174,7 +174,7 @@ const BlogPostClient = ({ slug }: { slug: string }) => {
 
   return (
     <div className="app">
-      <AppBar active={navTab} onNav={setNavTab} role={role as "ADMIN" | "STUDENT" | undefined} userName={session?.user?.name ?? undefined} />
+      <AppBar active={navTab} onNav={setNavTab} role="STUDENT" userName={session?.user?.name ?? undefined} />
       <div className="app-scroll">
         <section className="blog-post-hero">
           <Breeze opacity={0.13} color="var(--brand-500)" />
