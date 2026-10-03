@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Icon, AppBar, Avatar } from "./ui";
-import { KhatamPattern } from "./motifs";
+import { Breeze, KhatamPattern } from "./motifs";
+import { SITE_NAME } from "@/lib/site";
 
 type Post = {
   id: string;
@@ -18,14 +19,22 @@ type Post = {
   author: { id: string; name: string };
 };
 
+const EMPTY_FORM = {
+  title: "",
+  excerpt: "",
+  body: "",
+  coverUrl: "",
+  isPublished: true,
+};
+
 const BlogClient = () => {
   const { data: session } = useSession();
   const router = useRouter();
-  const [navTab, setNavTab] = useState("news");
+  const [navTab, setNavTab] = useState("blog");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", excerpt: "", body: "", coverUrl: "", isPublished: true });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -35,131 +44,221 @@ const BlogClient = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/blog");
-      if (res.ok) setPosts((await res.json()).posts);
-    } finally { setLoading(false); }
+      const res = await fetch("/api/blog", { cache: "no-store" });
+      if (res.ok) setPosts((await res.json()).posts ?? []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const createPost = async () => {
-    if (!form.title.trim() || !form.body.trim()) { setFormError("Title and body are required."); return; }
-    setCreating(true); setFormError("");
+    if (!form.title.trim() || !form.body.trim()) {
+      setFormError("Title and body are required.");
+      return;
+    }
+
+    setCreating(true);
+    setFormError("");
+
     try {
       const res = await fetch("/api/blog", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: form.title, excerpt: form.excerpt || undefined, body: form.body, coverUrl: form.coverUrl || undefined, isPublished: form.isPublished }),
+        body: JSON.stringify({
+          title: form.title.trim(),
+          excerpt: form.excerpt.trim() || undefined,
+          body: form.body.trim(),
+          coverUrl: form.coverUrl.trim() || undefined,
+          isPublished: form.isPublished,
+        }),
       });
-      if (res.ok) {
-        const { post } = await res.json();
-        router.push(`/blog/${post.slug}`);
-      } else {
-        const d = await res.json();
-        setFormError(d.error ?? "Failed to create");
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFormError(data.error ?? "Could not create the post.");
+        return;
       }
-    } finally { setCreating(false); }
+
+      setForm(EMPTY_FORM);
+      setShowForm(false);
+      router.push(`/blog/${data.post.slug}`);
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
     <div className="app">
-      <AppBar active={navTab} onNav={setNavTab} role={role as "ADMIN" | "STUDENT" | undefined} userName={session?.user?.name ?? undefined} />
+      <AppBar active={navTab} onNav={setNavTab} role="STUDENT" userName={session?.user?.name ?? undefined} />
       <div className="app-scroll">
-        {/* Hero */}
-        <div style={{ position:"relative", background:"linear-gradient(135deg, var(--brand-700), var(--brand-900))", padding:"56px 32px 44px", overflow:"hidden" }}>
-          <KhatamPattern opacity={0.1} color="white" style={{ position:"absolute", inset:0 }} />
-          <div style={{ position:"relative", maxWidth:800, margin:"0 auto", color:"white" }}>
-            <div style={{ fontSize:12, fontWeight:800, letterSpacing:"0.12em", textTransform:"uppercase", opacity:0.7, marginBottom:10 }}>Nasym-ur-Rahmah</div>
-            <h1 style={{ fontSize:42, fontWeight:800, margin:"0 0 10px", lineHeight:1.15 }}>The Blog</h1>
-            <p style={{ fontSize:16, opacity:0.8, margin:0 }}>Reflections, lessons, and insights from our teachers</p>
+        <section className="blog-hero">
+          <Breeze opacity={0.16} color="var(--brand-500)" />
+          <KhatamPattern opacity={0.025} color="var(--brand-700)" style={{ position: "absolute", inset: 0 }} />
+          <div className="blog-hero-inner">
+            <div className="eyebrow">{SITE_NAME}</div>
+            <h1 className="serif">Blog</h1>
+            <p>Reflections, lessons, guidance, and institute updates — presented with the same calm learning experience as the rest of Nasym.</p>
           </div>
-        </div>
+        </section>
 
-        <div style={{ maxWidth:860, margin:"0 auto", padding:"36px 32px 80px" }}>
+        <main className="blog-page-wrap">
           {canWrite && (
-            <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:24 }}>
-              <button className="btn btn-primary" onClick={() => setShowForm(v => !v)}>
-                <Icon name="plus" size={14}/> New post
+            <div className="blog-toolbar">
+              <div>
+                <div className="eyebrow">Publishing</div>
+                <p>Admins and teachers can create posts. Teachers can manage their own posts; admins can manage all posts.</p>
+              </div>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setShowForm((visible) => !visible);
+                  setFormError("");
+                }}
+              >
+                <Icon name="plus" size={14} /> {showForm ? "Close editor" : "New blog post"}
               </button>
             </div>
           )}
 
           {showForm && canWrite && (
-            <div className="surface" style={{ padding:28, marginBottom:28 }}>
-              <div style={{ fontWeight:700, fontSize:16, marginBottom:18 }}>New blog post</div>
-              {formError && <div style={{ color:"#e53e3e", fontSize:13, marginBottom:12 }}>{formError}</div>}
-              <div style={{ display:"flex", flexDirection:"column", gap:14, marginBottom:16 }}>
+            <section className="surface blog-editor-card">
+              <div className="blog-editor-heading">
+                <div>
+                  <div className="eyebrow">New post</div>
+                  <h2 className="serif">Create a blog post</h2>
+                </div>
+                <span className="chip chip-brand">Admin / Teacher</span>
+              </div>
+
+              {formError && <div className="blog-form-error">{formError}</div>}
+
+              <div className="blog-editor-grid">
                 <div>
                   <label className="label">Title *</label>
-                  <input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Understanding the Five Pillars" />
+                  <input
+                    className="input"
+                    value={form.title}
+                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                    placeholder="Post title"
+                  />
                 </div>
                 <div>
-                  <label className="label">Excerpt (shown in listing)</label>
-                  <input className="input" value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} placeholder="One-line summary…" />
+                  <label className="label">Excerpt</label>
+                  <input
+                    className="input"
+                    value={form.excerpt}
+                    onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))}
+                    placeholder="A short summary shown on the blog page"
+                  />
                 </div>
                 <div>
                   <label className="label">Cover image URL (optional)</label>
-                  <input className="input" value={form.coverUrl} onChange={e => setForm(f => ({ ...f, coverUrl: e.target.value }))} placeholder="https://…" />
+                  <input
+                    className="input"
+                    value={form.coverUrl}
+                    onChange={(e) => setForm((f) => ({ ...f, coverUrl: e.target.value }))}
+                    placeholder="https://..."
+                    inputMode="url"
+                  />
                 </div>
                 <div>
-                  <label className="label">Body *</label>
-                  <textarea className="input" rows={12} value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} placeholder="Write your article here… Markdown is preserved as plain text." style={{ resize:"vertical", fontFamily:"inherit" }} />
+                  <label className="label">Article *</label>
+                  <textarea
+                    className="input blog-body-editor"
+                    rows={16}
+                    value={form.body}
+                    onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                    placeholder={"Write your article here.\n\n## Section heading\n### Subheading\n> Highlighted quote"}
+                  />
+                  <p className="blog-editor-help">Use <strong>##</strong> for section headings, <strong>###</strong> for subheadings, <strong>&gt;</strong> for a highlighted quote, and <strong>-</strong> for bullet points. Content is rendered safely as text.</p>
                 </div>
-                <div>
-                  <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontSize:14, fontWeight:600 }}>
-                    <input type="checkbox" checked={form.isPublished} onChange={e => setForm(f => ({ ...f, isPublished: e.target.checked }))} />
-                    Publish immediately
-                  </label>
-                </div>
+                <label className="blog-publish-toggle">
+                  <input
+                    type="checkbox"
+                    checked={form.isPublished}
+                    onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked }))}
+                  />
+                  <span>
+                    <strong>Publish immediately</strong>
+                    <small>Turn this off to save the post as a draft.</small>
+                  </span>
+                </label>
               </div>
-              <div style={{ display:"flex", gap:8 }}>
-                <button className="btn btn-primary" onClick={createPost} disabled={creating || !form.title.trim()}>
-                  {creating ? "Creating…" : "Publish post"}
+
+              <div className="blog-editor-actions">
+                <button
+                  className="btn btn-primary"
+                  onClick={createPost}
+                  disabled={creating || !form.title.trim() || !form.body.trim()}
+                >
+                  {creating ? "Saving…" : form.isPublished ? "Publish post" : "Save draft"}
                 </button>
-                <button className="btn btn-ghost" onClick={() => { setShowForm(false); setFormError(""); }}>Cancel</button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowForm(false);
+                    setForm(EMPTY_FORM);
+                    setFormError("");
+                  }}
+                >
+                  Cancel
+                </button>
               </div>
-            </div>
+            </section>
           )}
 
           {loading ? (
-            <div style={{ textAlign:"center", padding:64, color:"var(--ink-3)" }}>Loading…</div>
+            <div className="blog-empty-state">Loading blog posts…</div>
           ) : posts.length === 0 ? (
-            <div style={{ textAlign:"center", padding:64, color:"var(--ink-3)" }}>No posts yet.</div>
+            <div className="surface blog-empty-state">No blog posts have been published yet.</div>
           ) : (
-            <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-              {posts.map(post => (
+            <div className="blog-list">
+              {posts.map((post) => (
                 <article
                   key={post.id}
-                  className="surface"
-                  style={{ display:"flex", gap:0, overflow:"hidden", cursor:"pointer" }}
+                  className="surface blog-list-card"
                   onClick={() => router.push(`/blog/${post.slug}`)}
                 >
-                  {post.coverUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={post.coverUrl} alt={post.title} style={{ width:200, objectFit:"cover", flexShrink:0 }} />
-                  )}
-                  <div style={{ padding:"22px 24px", flex:1 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                      {!post.isPublished && <span className="chip" style={{ fontSize:10 }}>Draft</span>}
-                      <span style={{ fontSize:12, color:"var(--ink-3)" }}>
-                        {post.publishedAt
-                          ? new Date(post.publishedAt).toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" })
-                          : new Date(post.createdAt).toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" })
-                        }
+                  <div className="blog-card-media">
+                    {post.coverUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={post.coverUrl} alt="" />
+                    ) : (
+                      <>
+                        <Breeze opacity={0.25} color="var(--brand-500)" />
+                        <div className="blog-card-media-icon"><Icon name="book" size={28} stroke={1.4} /></div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="blog-card-content">
+                    <div className="blog-card-meta">
+                      {!post.isPublished && <span className="chip chip-brand">Draft</span>}
+                      <span>
+                        {new Date(post.publishedAt ?? post.createdAt).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
                       </span>
                     </div>
-                    <h2 style={{ fontSize:20, fontWeight:800, margin:"0 0 8px", lineHeight:1.25 }}>{post.title}</h2>
-                    {post.excerpt && <p style={{ margin:"0 0 14px", fontSize:14, color:"var(--ink-2)", lineHeight:1.6 }}>{post.excerpt}</p>}
-                    <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, color:"var(--ink-3)" }}>
-                      <Avatar name={post.author.name} size={22} />
+
+                    <h2 className="serif">{post.title}</h2>
+                    {post.excerpt && <p>{post.excerpt}</p>}
+
+                    <div className="blog-card-author">
+                      <Avatar name={post.author.name} size={26} />
                       <span>{post.author.name}</span>
+                      <span className="blog-read-more">Read article <Icon name="arrow-right" size={13} /></span>
                     </div>
                   </div>
                 </article>
               ))}
             </div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );

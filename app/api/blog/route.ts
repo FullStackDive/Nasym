@@ -9,7 +9,7 @@ const createSchema = z.object({
   slug: z.string().min(2).max(200).regex(/^[a-z0-9-]+$/, "Slug: lowercase letters, numbers, hyphens only").optional(),
   excerpt: z.string().max(500).optional(),
   body: z.string().min(1),
-  coverUrl: z.string().url().optional(),
+  coverUrl: z.string().url().refine((value) => /^https?:\/\//i.test(value), "Cover image must use http or https").optional(),
   isPublished: z.boolean().optional(),
 });
 
@@ -21,13 +21,18 @@ function slugify(title: string) {
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
-  const canSeeAll = role === "ADMIN" || role === "TEACHER";
 
   const { searchParams } = new URL(req.url);
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
   const limit = 20;
 
-  const where = canSeeAll ? {} : { isPublished: true };
+  // Admins can review every post. Teachers can review published posts plus
+  // their own drafts. Students/anonymous visitors only receive published posts.
+  const where = role === "ADMIN"
+    ? {}
+    : role === "TEACHER" && session?.user?.id
+      ? { OR: [{ isPublished: true }, { authorId: session.user.id }] }
+      : { isPublished: true };
 
   const [posts, total] = await Promise.all([
     prisma.blogPost.findMany({
@@ -46,7 +51,7 @@ export async function GET(req: Request) {
       headers: {
         // Anon/student see the same published-only list — let CDN cache that.
         // Admins/teachers must always get fresh data.
-        "Cache-Control": canSeeAll
+        "Cache-Control": role === "ADMIN" || role === "TEACHER"
           ? "private, no-store"
           : "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
       },

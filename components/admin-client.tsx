@@ -13,7 +13,7 @@ type NavGroup = { group: string; items: [string, string, IconName][] };
 const adminNav: NavGroup[] = [
   { group: "Overview", items: [["overview","Dashboard","home"],["analytics","Analytics","trend"]] },
   { group: "People", items: [["users","Users","users"],["approvals","Pending approvals","clock"],["invitations","Invitations","mail"],["perms","Roles & permissions","shield"],["reports","Reports & moderation","newspaper"]] },
-  { group: "Content", items: [["courses","Courses","book"],["classes","Classes","video"],["lessons","Lessons","book"],["news","News","newspaper"],["posters","Posters","newspaper"],["quizzes","Quizzes","check"],["ask","Ask Us — Q&A","mail"]] },
+  { group: "Content", items: [["courses","Courses","book"],["classes","Classes","video"],["lessons","Lessons","book"],["blog","Blog","book"],["news","News","newspaper"],["posters","Posters","newspaper"],["quizzes","Quizzes","check"],["ask","Ask Us — Q&A","mail"]] },
 ];
 
 const Sparkline = ({ data, color = "var(--brand-600)" }: { data: number[]; color?: string }) => {
@@ -35,6 +35,7 @@ const ROUTE_KEYS: Record<string, string> = {
   lessons: "/admin/lessons",
   quizzes: "/admin/quizzes",
   news: "/admin/news",
+  blog: "/blog",
   posters: "/admin/posters",
   reports: "/admin/reports",
   analytics: "/admin/analytics",
@@ -61,7 +62,7 @@ export const AdminShell = ({ active, onNav, children }: { active: string; onNav?
     reports: "reports",
     analytics: "analytics",
     courses: "content", classes: "content", lessons: "content",
-    news: "content", posters: "content", quizzes: "content", ask: "content",
+    blog: "content", news: "content", posters: "content", quizzes: "content", ask: "content",
   };
   const appbarActive = appbarActiveMap[active] ?? "";
 

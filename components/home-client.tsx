@@ -204,8 +204,8 @@ export default function HomeClient() {
         <section style={{ maxWidth: 1180, margin: "0 auto", padding: "56px 32px" }}>
           <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1.25fr .85fr", gap: 36 }}>
             <div>
-              <div className="eyebrow">Daily on the journal</div>
-              <h2 className="serif" style={{ fontSize: 36, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 22px" }}>Reflections</h2>
+              <div className="eyebrow">From the blog</div>
+              <h2 className="serif" style={{ fontSize: 36, fontWeight: 500, letterSpacing: "-0.02em", margin: "8px 0 22px" }}>Latest posts</h2>
               {posts.length === 0 ? (
                 <div className="surface" style={{ padding: 30, textAlign: "center", color: "var(--ink-3)" }}>
                   No reflections published yet.
@@ -314,7 +314,7 @@ export default function HomeClient() {
                   <FooterLink onClick={() => router.push("/courses")}>Courses</FooterLink>
                   <FooterLink onClick={() => router.push("/lessons")}>Lessons</FooterLink>
                   <FooterLink onClick={() => router.push("/classes")}>Live classes</FooterLink>
-                  <FooterLink onClick={() => router.push("/blog")}>Reflections</FooterLink>
+                  <FooterLink onClick={() => router.push("/blog")}>Blog</FooterLink>
                   <FooterLink onClick={() => router.push("/ask")}>Ask a question</FooterLink>
                 </div>
               </div>

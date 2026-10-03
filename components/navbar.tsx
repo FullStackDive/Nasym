@@ -22,6 +22,7 @@ export function Navbar() {
       <Link href="/lessons" onClick={close} className={linkCls}>Lessons</Link>
       <Link href="/quizzes" onClick={close} className={linkCls}>Quizzes</Link>
       <Link href="/reports" onClick={close} className={linkCls}>Report</Link>
+      <Link href="/blog" onClick={close} className={linkCls}>Blog</Link>
       <Link href="/news" onClick={close} className={linkCls}>News</Link>
       <Link href="/reminders" onClick={close} className={linkCls}>Reminders</Link>
       {data && <Link href="/dashboard" onClick={close} className={linkCls}>Dashboard</Link>}
@@ -86,6 +87,7 @@ export function Navbar() {
             <Link href="/lessons" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Lessons</Link>
             <Link href="/quizzes" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Quizzes</Link>
             <Link href="/reports" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Report</Link>
+            <Link href="/blog" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Blog</Link>
             <Link href="/news" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">News</Link>
             <Link href="/reminders" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Reminders</Link>
             {data && <Link href="/dashboard" onClick={close} className="rounded-xl px-3 py-2 font-semibold hover:bg-slate-50">Dashboard</Link>}
