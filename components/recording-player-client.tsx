@@ -130,8 +130,8 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
                   <iframe src={driveEmbed} title={recording.title} style={{ width:"100%", height:"100%", border:0 }} allowFullScreen />
                 )}
                 {provider === "jumpshare" && externalUrl && (
-                  <div style={{ height:"100%", padding:24, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16, textAlign:"center", color:"white" }}>
-                    <Icon name="play" size={36} />
+                  <div style={{ height:"100%", padding:10, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8, textAlign:"center", color:"white", fontSize:13 }}>
+                    <Icon name="play" size={24} />
                     <span>Open this recording on Jumpshare</span>
                     <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary">Open recording ↗</a>
                   </div>
