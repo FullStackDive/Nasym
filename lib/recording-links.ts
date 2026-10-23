@@ -14,7 +14,8 @@ export function recordingProvider(value: string): RecordingProvider {
       if (/^\/file\/d\/[a-zA-Z0-9_-]+(?:\/|$)/.test(url.pathname)) return "google-drive";
       if (url.pathname === "/open" && /^[a-zA-Z0-9_-]+$/.test(url.searchParams.get("id") ?? "")) return "google-drive";
     }
-    if ((host === "jumpshare.com" || host === "www.jumpshare.com") && /^\/(v|s)\/[a-zA-Z0-9_-]+(?:\/|$)/.test(url.pathname)) return "jumpshare";
+    if ((host === "jmp.sh" || host === "www.jmp.sh") && /^\/+[a-zA-Z0-9_-]+[+-]?\/?$/.test(url.pathname)) return "jumpshare";
+    if ((host === "jumpshare.com" || host === "www.jumpshare.com") && /^\/(v|s|share)\/[a-zA-Z0-9_-]+(?:\/|$)/.test(url.pathname)) return "jumpshare";
     return null;
   } catch { return null; }
 }
