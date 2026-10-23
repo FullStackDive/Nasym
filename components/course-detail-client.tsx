@@ -973,7 +973,7 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
                   No recordings yet.{canEdit ? " Add one above." : ""}
                 </div>
               ) : (
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: 16 }}>
                   {recordings.map(rec => (
                     <RecordingCard key={rec.id} recording={rec} courseId={courseId} canEdit={canEdit} onDelete={deleteRecording} />
                   ))}
