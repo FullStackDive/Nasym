@@ -1,7 +1,8 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import NotificationBell from "./notification-bell";
 
@@ -151,8 +152,46 @@ const ADMIN_ROUTES: Record<string, string> = {
   reports: "/admin/reports",
 };
 
+// The desktop admin sidebar is hidden at tablet/mobile widths. Give these
+// screens the same admin destinations in the accessible hamburger drawer.
+const ADMIN_DRAWER_GROUPS = [
+  {
+    name: "Overview",
+    links: [
+      { label: "Dashboard", href: "/admin" },
+      { label: "Analytics", href: "/admin/analytics" },
+    ],
+  },
+  {
+    name: "People",
+    links: [
+      { label: "Users", href: "/admin/users" },
+      { label: "Pending approvals", href: "/admin?v=approvals" },
+      { label: "Invitations", href: "/admin?v=invitations" },
+      { label: "Roles & permissions", href: "/admin?v=perms" },
+      { label: "Reports & moderation", href: "/admin/reports" },
+    ],
+  },
+  {
+    name: "Content",
+    links: [
+      { label: "Courses", href: "/admin?v=courses" },
+      { label: "Classes", href: "/admin/classes" },
+      { label: "Lessons", href: "/admin/lessons" },
+      { label: "Blog", href: "/blog" },
+      { label: "FAQs", href: "/admin/faq" },
+      { label: "Āyah of the Day", href: "/admin/ayah" },
+      { label: "News", href: "/admin/news" },
+      { label: "Posters", href: "/admin/posters" },
+      { label: "Quizzes", href: "/admin/quizzes" },
+      { label: "Ask Us — Q&A", href: "/admin?v=ask" },
+    ],
+  },
+] as const;
+
 export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, userName }: AppBarProps) => {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session, status } = useSession();
   const sessionName = (session?.user?.name ?? "").trim();
   const displayName = userName ?? (sessionName || null);
@@ -338,7 +377,23 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
                 <input className="input" placeholder="Search…" style={{ paddingLeft: 38, height: 40, borderRadius: 12 }} />
               </div>
             )}
-            {items.map(([k, label]) => (
+            {role === "ADMIN" && authed && isAdmin ? (
+              ADMIN_DRAWER_GROUPS.map(group => (
+                <div key={group.name} className="drawer-nav-group">
+                  <div className="drawer-group-label">{group.name}</div>
+                  {group.links.map(link => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={!link.href.includes("?") && pathname === link.href ? "active" : ""}
+                      onClick={() => setDrawerOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              ))
+            ) : items.map(([k, label]) => (
               <a key={k} className={active === k ? "active" : ""} onClick={() => handleNav(k)}>{label}</a>
             ))}
             <div style={{ height: 1, background: "var(--hairline)", margin: "10px 4px" }} />
