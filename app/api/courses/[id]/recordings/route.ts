@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isCourseTeacher, isCourseEnrolled } from "@/lib/access";
-import { recordingProvider } from "@/lib/recording-links";
+import { isValidRecordingUrl } from "@/lib/recording-links";
 
 async function canEdit(userId: string, role: string, courseId: string) {
   if (role === "ADMIN") return true;
@@ -37,7 +37,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json({ recordings });
 }
 
-// POST /api/courses/[id]/recordings — multipart video upload or external URL
+// POST /api/courses/[id]/recordings — save a link to externally hosted recording
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -53,7 +53,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const contentType = req.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     return NextResponse.json(
-      { error: "Please provide a YouTube, Google Drive or Jumpshare recording link." },
+      { error: "Please submit the recording URL as JSON." },
       { status: 415 }
     );
   }
@@ -69,9 +69,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const videoUrl = String(body.videoUrl).trim();
   const classSessionId = body.classSessionId ? String(body.classSessionId).trim() : null;
 
-  if (!recordingProvider(videoUrl)) {
+  if (!isValidRecordingUrl(videoUrl)) {
     return NextResponse.json(
-      { error: "Please paste a valid HTTPS YouTube, Google Drive or Jumpshare recording link." },
+      { error: "Enter a valid recording URL starting with https:// or http://." },
       { status: 400 }
     );
   }
