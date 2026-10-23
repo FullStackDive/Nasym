@@ -1,0 +1,26 @@
+name: Validate Nasym changes
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nasym
+      DATABASE_URL_UNPOOLED: postgresql://postgres:postgres@localhost:5432/nasym
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: local-build-validation-secret-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx prisma validate
+      - run: npx prisma generate
+      - run: npx tsc --noEmit
+      - run: npm run build
