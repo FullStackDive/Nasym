@@ -672,3 +672,27 @@ model Notification {
 
   @@index([userId, read, createdAt])
 }
+
+
+// Public FAQ content, editable by administrators only.
+model FaqEntry {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  category  String   @default("GENERAL")
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, position])
+}
+
+// One optional administrator-selected homepage āyah; otherwise rotate defaults.
+model FeaturedAyah {
+  id        String   @id
+  arabic    String
+  translit  String   @default("")
+  meaning   String
+  reference String
+  updatedAt DateTime @updatedAt
+}

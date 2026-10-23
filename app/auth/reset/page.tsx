@@ -29,18 +29,23 @@ function ResetForm() {
       return;
     }
     setBusy(true);
-    const res = await fetch("/api/auth/reset", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setError(data.error ?? "Reset failed.");
-      return;
+    try {
+      const res = await fetch("/api/auth/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Reset failed. You may need to request a new link.");
+        return;
+      }
+      setMsg(data.message ?? "Password updated.");
+    } catch {
+      setError("Could not connect to the server. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    setMsg(data.message ?? "Password updated.");
   }
 
   if (!token) {

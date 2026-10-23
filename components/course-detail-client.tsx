@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Icon, Avatar, AppBar } from "./ui";
 import { KhatamPattern } from "./motifs";
-import { getYouTubeVideoId } from "@/lib/youtube";
+import { recordingProvider } from "@/lib/recording-links";
 
 type CourseModule = {
   id: string;
@@ -375,8 +375,8 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
   const uploadRecording = async () => {
     if (!recForm.title.trim() || !recForm.videoUrl.trim()) return;
 
-    if (!getYouTubeVideoId(recForm.videoUrl)) {
-      setRecordingError("Please paste a valid YouTube video link.");
+    if (!recordingProvider(recForm.videoUrl)) {
+      setRecordingError("Please paste a valid YouTube, Google Drive or Jumpshare link (HTTPS).");
       return;
     }
 
@@ -949,10 +949,10 @@ const CourseDetailClient = ({ courseId }: { courseId: string }) => {
                       <textarea className="input" rows={2} value={recForm.description} onChange={e => setRecForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief summary…" style={{ resize:"vertical" }} />
                     </div>
                     <div>
-                      <label className="label">Unlisted YouTube URL *</label>
-                      <input className="input" value={recForm.videoUrl} onChange={e => { setRecForm(f => ({ ...f, videoUrl: e.target.value })); setRecordingError(""); }} placeholder="https://youtu.be/…" />
+                      <label className="label">Recording link (YouTube, Google Drive or Jumpshare) *</label>
+                      <input className="input" value={recForm.videoUrl} onChange={e => { setRecForm(f => ({ ...f, videoUrl: e.target.value })); setRecordingError(""); }} placeholder="Paste a YouTube, Google Drive or Jumpshare sharing link" />
                       <div style={{ fontSize:11, color:"var(--ink-3)", marginTop:6 }}>
-                        Upload the class to YouTube as Unlisted, then paste its share link here.
+                        Paste a viewable sharing link. For Google Drive and Jumpshare, allow your students to access the file in its sharing settings.
                       </div>
                     </div>
                     {recordingError && (

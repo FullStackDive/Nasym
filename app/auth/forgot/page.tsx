@@ -11,14 +11,19 @@ export default function ForgotPage() {
     e.preventDefault();
     setBusy(true);
     setMsg(null);
-    const res = await fetch("/api/auth/forgot", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    setMsg(data.message ?? data.error ?? "Done.");
+    try {
+      const res = await fetch("/api/auth/forgot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setMsg(res.ok ? data.message ?? "Check your inbox." : data.error ?? "We could not send a reset email. Please try again.");
+    } catch {
+      setMsg("Could not connect to the server. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

@@ -140,6 +140,7 @@ const STUDENT_ROUTES: Record<string, string> = {
   lessons: "/lessons",
   blog: "/blog",
   news: "/news",
+  faq: "/faq",
 };
 
 const ADMIN_ROUTES: Record<string, string> = {
@@ -161,7 +162,7 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [siteAnnouncement, setSiteAnnouncement] = useState<{ title: string; body?: string } | null>(null);
   const hiddenPages = ((session?.user as { hiddenPages?: string[] } | undefined)?.hiddenPages ?? []);
-  const studentItems: [string, string][] = [["home", "Home"], ["dashboard", "Dashboard"], ["classes", "Classes"], ["lessons", "Lessons"], ["blog", "Blog"], ["news", "News"]]
+  const studentItems: [string, string][] = [["home", "Home"], ["dashboard", "Dashboard"], ["classes", "Classes"], ["lessons", "Lessons"], ["blog", "Blog"], ["news", "News"], ["faq", "FAQ"]]
     .filter(([k]) => !hiddenPages.includes(k)) as [string, string][];
   const items: [string, string][] = role === "ADMIN"
     ? [["overview", "Overview"], ["users", "Users"], ["content", "Content"], ["analytics", "Analytics"], ["reports", "Reports"]]

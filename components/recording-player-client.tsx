@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, AppBar } from "./ui";
 import { getYouTubeVideoId, toYouTubeEmbedUrl } from "@/lib/youtube";
+import { recordingProvider, drivePreviewUrl } from "@/lib/recording-links";
 
 type Recording = {
   id: string;
@@ -41,10 +42,7 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [recRes, allRes] = await Promise.all([
-        fetch(`/api/courses/${courseId}/recordings`),
-        fetch(`/api/courses/${courseId}/recordings`),
-      ]);
+      const recRes = await fetch(`/api/courses/${courseId}/recordings`);
       if (!recRes.ok) { setError("Recording not found"); return; }
       const { recordings } = await recRes.json();
       const current = recordings.find((r: Recording) => r.id === recordingId);
@@ -86,6 +84,9 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
   const streamUrl = isPrivate ? `/api/recordings/${recording.id}/stream` : null;
   const externalUrl = !isPrivate ? recording.videoUrl : null;
   const useEmbed = externalUrl && (isYouTube(externalUrl) || isVimeo(externalUrl));
+  const provider = externalUrl ? recordingProvider(externalUrl) : null;
+  const driveEmbed = provider === "google-drive" && externalUrl ? drivePreviewUrl(externalUrl) : null;
+  const isExternalShare = provider === "google-drive" || provider === "jumpshare";
   const embedUrl = externalUrl ? toEmbedUrl(externalUrl) : null;
 
   const duration = recording.durationSec
@@ -96,15 +97,15 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
     <div className="app">
       <AppBar active={navTab} onNav={setNavTab} />
       <div className="app-scroll">
-        <div style={{ maxWidth: 1100, margin:"0 auto", padding:"28px 32px 64px" }}>
+        <div style={{ maxWidth: 1100, margin:"0 auto", padding:"clamp(16px, 4vw, 32px) clamp(14px, 4vw, 32px) 64px" }}>
           <button className="btn btn-ghost btn-sm" style={{ marginBottom:18 }} onClick={() => router.push(`/courses/${courseId}?tab=recordings`)}>
             ← Back to recordings
           </button>
 
-          <div style={{ display:"grid", gridTemplateColumns:"1.6fr .7fr", gap:28 }}>
+          <div className="recording-detail-grid" style={{ display:"grid", gridTemplateColumns:"minmax(0,1.6fr) minmax(0,.7fr)", gap:28 }}>
             {/* Player */}
             <div>
-              <div style={{ position:"relative", width:"100%", aspectRatio:"16/9", background:"#000", borderRadius:16, overflow:"hidden", marginBottom:18 }}>
+              <div style={{ position:"relative", width:"100%", aspectRatio:"16/9", background:"#102d35", borderRadius:16, overflow:"hidden", marginBottom:18 }}>
                 {streamUrl && (
                   // eslint-disable-next-line jsx-a11y/media-has-caption
                   <video
@@ -125,7 +126,17 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
                     title={recording.title}
                   />
                 )}
-                {externalUrl && !useEmbed && (
+                {driveEmbed && (
+                  <iframe src={driveEmbed} title={recording.title} style={{ width:"100%", height:"100%", border:0 }} allowFullScreen />
+                )}
+                {provider === "jumpshare" && externalUrl && (
+                  <div style={{ height:"100%", padding:24, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16, textAlign:"center", color:"white" }}>
+                    <Icon name="play" size={36} />
+                    <span>Open this recording on Jumpshare</span>
+                    <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary">Open recording ↗</a>
+                  </div>
+                )}
+                {externalUrl && !useEmbed && !isExternalShare && (
                   // Direct video URL (mp4, webm, etc. hosted externally)
                   // eslint-disable-next-line jsx-a11y/media-has-caption
                   <video
@@ -139,9 +150,14 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
                 )}
               </div>
 
+              {isExternalShare && externalUrl && (
+                <p style={{ margin:"0 0 18px", fontSize:13, color:"var(--ink-3)", lineHeight:1.7 }}>
+                  If the preview is unavailable, <a href={externalUrl} target="_blank" rel="noopener noreferrer" style={{ color:"var(--brand-700)", fontWeight:700 }}>open the recording on {provider === "google-drive" ? "Google Drive" : "Jumpshare"} ↗</a>. Access depends on the file owner's sharing permissions.
+                </p>
+              )}
               {/* Metadata */}
               <h1 style={{ fontSize:22, fontWeight:800, margin:"0 0 8px" }}>{recording.title}</h1>
-              <div style={{ display:"flex", gap:16, fontSize:13, color:"var(--ink-3)", marginBottom:14 }}>
+              <div style={{ display:"flex", gap:12, flexWrap:"wrap", fontSize:13, color:"var(--ink-3)", marginBottom:14 }}>
                 <span><Icon name="user" size={13}/> {recording.uploadedBy.name}</span>
                 {duration && <span><Icon name="clock" size={13}/> {duration}</span>}
                 {recording.classSession && (

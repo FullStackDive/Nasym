@@ -2,6 +2,10 @@ import nodemailer from "nodemailer";
 
 let _transporter: nodemailer.Transporter | null = null;
 
+export function emailDeliveryConfigured(): boolean {
+  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
 async function getTransporter(): Promise<nodemailer.Transporter> {
   if (_transporter) return _transporter;
 
@@ -15,6 +19,9 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
       }
     });
   } else {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SMTP credentials not configured for production email delivery");
+    }
     const account = await nodemailer.createTestAccount();
     console.log("[email] No SMTP credentials — using Ethereal test account:", account.user);
     _transporter = nodemailer.createTransport({
@@ -37,7 +44,7 @@ export async function sendEmail({
   subject: string;
   html: string;
   text?: string;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     const transporter = await getTransporter();
     const info = await transporter.sendMail({
@@ -50,7 +57,9 @@ export async function sendEmail({
     if (!process.env.SMTP_USER) {
       console.log("[email] Preview URL:", nodemailer.getTestMessageUrl(info));
     }
+    return true;
   } catch (err) {
     console.error("[email] Send failed:", err);
+    return false;
   }
 }
