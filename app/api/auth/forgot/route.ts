@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, emailDeliveryConfigured } from "@/lib/email";
 import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
 
-const schema = z.object({ email: z.string().email() });
+const schema = z.object({ email: z.string().trim().toLowerCase().email() });
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 function hashToken(token: string) {
@@ -25,7 +25,13 @@ export async function POST(req: Request) {
   });
   if (!parsed.success) return generic;
 
-  const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  // Configuration failure must be visible and identical for every email address.
+  if (!emailDeliveryConfigured()) {
+    console.error("[password-reset] SMTP delivery is not configured");
+    return NextResponse.json({ error: "Password reset emails are temporarily unavailable. Please contact the institute administrator." }, { status: 503 });
+  }
+
+  const user = await prisma.user.findFirst({ where: { email: { equals: parsed.data.email, mode: "insensitive" } } });
   if (!user || user.status === "BANNED" || user.status === "REJECTED") return generic;
 
   const rawToken = crypto.randomBytes(32).toString("base64url");
@@ -49,7 +55,7 @@ export async function POST(req: Request) {
     targetId: user.id,
   }, req);
 
-  void sendEmail({
+  const delivered = await sendEmail({
     to: user.email,
     subject: "Nasym-ur-Rahmah — password reset",
     html: `
@@ -59,6 +65,10 @@ export async function POST(req: Request) {
       <p>If you did not request this, you can ignore this email.</p>
     `,
   });
+  if (!delivered) {
+    await prisma.passwordResetToken.deleteMany({ where: { tokenHash } });
+    return NextResponse.json({ error: "Password reset emails are temporarily unavailable. Please try again later or contact the institute administrator." }, { status: 503 });
+  }
 
   return generic;
 }

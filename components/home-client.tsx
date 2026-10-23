@@ -64,7 +64,16 @@ export default function HomeClient() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   // Recompute on mount; rotates once per local calendar day.
-  const [ayah] = useState(() => ayahOfTheDay());
+  const [ayah, setAyah] = useState(() => ayahOfTheDay());
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/ayah", { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled && d?.ayah) setAyah(d.ayah); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,9 +140,9 @@ export default function HomeClient() {
                   <div className="eyebrow" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--accent-500)" }} /> Āyah of the day
                   </div>
-                  <p className="arabic" dir="rtl" style={{ fontSize: 46, fontWeight: 700, color: "var(--brand-800)", margin: "22px 0 14px", textAlign: "right", lineHeight: 1.4 }}>{ayah.arabic}</p>
-                  <p className="serif" style={{ fontStyle: "italic", color: "var(--ink-3)", fontSize: 16, margin: 0, fontWeight: 500 }}>{ayah.translit}</p>
-                  <p className="serif" style={{ marginTop: 16, fontSize: 22, color: "var(--ink)", lineHeight: 1.4, fontWeight: 500 }}>{ayah.meaning}</p>
+                  <p className="arabic" dir="rtl" style={{ fontSize: "clamp(26px, 5vw, 46px)", fontWeight: 700, color: "var(--brand-800)", margin: "22px 0 14px", textAlign: "right", lineHeight: 1.4 }}>{ayah.arabic}</p>
+                  {ayah.translit && <p className="serif" style={{ fontStyle: "italic", color: "var(--ink-3)", fontSize: 16, margin: 0, fontWeight: 500 }}>{ayah.translit}</p>}
+                  <p className="serif" style={{ marginTop: 16, fontSize: "clamp(17px, 3vw, 22px)", color: "var(--ink)", lineHeight: 1.4, fontWeight: 500 }}>{ayah.meaning}</p>
                   <hr className="divider" style={{ margin: "24px 0" }} />
                   <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
                     <span style={{ fontSize: 12, color: "var(--ink-3)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>{ayah.ref}</span>

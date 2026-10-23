@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isCourseTeacher, isCourseEnrolled } from "@/lib/access";
-import { getYouTubeVideoId } from "@/lib/youtube";
+import { recordingProvider } from "@/lib/recording-links";
 
 async function canEdit(userId: string, role: string, courseId: string) {
   if (role === "ADMIN") return true;
@@ -53,7 +53,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const contentType = req.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     return NextResponse.json(
-      { error: "For now, add class recordings with an Unlisted YouTube link." },
+      { error: "Please provide a YouTube, Google Drive or Jumpshare recording link." },
       { status: 415 }
     );
   }
@@ -63,14 +63,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "title and videoUrl are required" }, { status: 400 });
   }
 
-  const title = String(body.title).trim();
+  const title = String(body.title).trim().slice(0, 300);
+  if (!title) return NextResponse.json({ error: "A recording title is required." }, { status: 400 });
   const description = body.description ? String(body.description).trim() : null;
   const videoUrl = String(body.videoUrl).trim();
   const classSessionId = body.classSessionId ? String(body.classSessionId).trim() : null;
 
-  if (!getYouTubeVideoId(videoUrl)) {
+  if (!recordingProvider(videoUrl)) {
     return NextResponse.json(
-      { error: "Please paste a valid YouTube video link." },
+      { error: "Please paste a valid HTTPS YouTube, Google Drive or Jumpshare recording link." },
       { status: 400 }
     );
   }
