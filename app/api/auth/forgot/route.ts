@@ -45,7 +45,10 @@ export async function POST(req: Request) {
     },
   });
 
-  const base = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+  // A dedicated canonical HTTPS origin avoids broken links if NEXTAUTH_URL
+  // points to an internal Railway host or to an older domain.
+  const base = process.env.PASSWORD_RESET_BASE_URL ??
+    process.env.NEXTAUTH_URL ?? "https://www.nasymurrahmah.com";
   const resetUrl = `${base}/auth/reset?token=${rawToken}`;
 
   await logAudit({
