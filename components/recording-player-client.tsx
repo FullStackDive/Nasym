@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, AppBar } from "./ui";
 import { getYouTubeVideoId, toYouTubeEmbedUrl } from "@/lib/youtube";
-import { recordingProvider, drivePreviewUrl } from "@/lib/recording-links";
+import { recordingProvider, drivePreviewUrl, isDirectVideoUrl, vimeoEmbedUrl } from "@/lib/recording-links";
 
 type Recording = {
   id: string;
@@ -17,19 +17,6 @@ type Recording = {
   classSession: { id: string; title: string; scheduledAt: string } | null;
 };
 
-const isYouTube = (url: string) => Boolean(getYouTubeVideoId(url));
-const isVimeo = (url: string) => url.includes("vimeo.com");
-
-function toEmbedUrl(url: string): string {
-  if (isYouTube(url)) {
-    return toYouTubeEmbedUrl(url) ?? url;
-  }
-  if (isVimeo(url)) {
-    const match = url.match(/vimeo\.com\/(\d+)/);
-    return match ? `https://player.vimeo.com/video/${match[1]}` : url;
-  }
-  return url;
-}
 
 const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; recordingId: string }) => {
   const router = useRouter();
@@ -83,11 +70,15 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
   const isPrivate = recording.videoUrl.startsWith("private:");
   const streamUrl = isPrivate ? `/api/recordings/${recording.id}/stream` : null;
   const externalUrl = !isPrivate ? recording.videoUrl : null;
-  const useEmbed = externalUrl && (isYouTube(externalUrl) || isVimeo(externalUrl));
   const provider = externalUrl ? recordingProvider(externalUrl) : null;
+  const youtubeId = externalUrl && provider === "youtube" ? getYouTubeVideoId(externalUrl) : null;
+  const youtubeEmbed = youtubeId && /^[a-zA-Z0-9_-]{6,64}$/.test(youtubeId)
+    ? toYouTubeEmbedUrl(externalUrl!) : null;
+  const vimeoEmbed = externalUrl ? vimeoEmbedUrl(externalUrl) : null;
   const driveEmbed = provider === "google-drive" && externalUrl ? drivePreviewUrl(externalUrl) : null;
-  const isExternalShare = provider === "google-drive" || provider === "jumpshare";
-  const embedUrl = externalUrl ? toEmbedUrl(externalUrl) : null;
+  const directVideo = externalUrl ? isDirectVideoUrl(externalUrl) : false;
+  const embedUrl = youtubeEmbed || vimeoEmbed;
+  const showExternalLink = Boolean(externalUrl && !embedUrl && !driveEmbed && !directVideo);
 
   const duration = recording.durationSec
     ? `${Math.floor(recording.durationSec / 60)}:${String(recording.durationSec % 60).padStart(2, "0")}`
@@ -117,7 +108,7 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
                     Your browser does not support the video tag.
                   </video>
                 )}
-                {useEmbed && embedUrl && (
+                {embedUrl && (
                   <iframe
                     src={embedUrl}
                     style={{ width:"100%", height:"100%", border:"none" }}
@@ -129,15 +120,17 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
                 {driveEmbed && (
                   <iframe src={driveEmbed} title={recording.title} style={{ width:"100%", height:"100%", border:0 }} allowFullScreen />
                 )}
-                {provider === "jumpshare" && externalUrl && (
-                  <div style={{ height:"100%", padding:10, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8, textAlign:"center", color:"white", fontSize:13 }}>
+                {showExternalLink && externalUrl && (
+                  <div style={{ height:"100%", padding:16, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12, textAlign:"center", color:"white", fontSize:13 }}>
                     <Icon name="play" size={24} />
-                    <span>Open this recording on Jumpshare</span>
-                    <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary">Open recording ↗</a>
+                    <span>This recording is hosted on an external website.</span>
+                    <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+                      Open recording ↗
+                    </a>
                   </div>
                 )}
-                {externalUrl && !useEmbed && !isExternalShare && (
-                  // Direct video URL (mp4, webm, etc. hosted externally)
+                {directVideo && externalUrl && (
+                  // Media file hosted externally, rather than an arbitrary web page.
                   // eslint-disable-next-line jsx-a11y/media-has-caption
                   <video
                     controls
@@ -150,9 +143,10 @@ const RecordingPlayerClient = ({ courseId, recordingId }: { courseId: string; re
                 )}
               </div>
 
-              {isExternalShare && externalUrl && (
+              {externalUrl && (
                 <p style={{ margin:"0 0 18px", fontSize:13, color:"var(--ink-3)", lineHeight:1.7 }}>
-                  If the preview is unavailable, <a href={externalUrl} target="_blank" rel="noopener noreferrer" style={{ color:"var(--brand-700)", fontWeight:700 }}>open the recording on {provider === "google-drive" ? "Google Drive" : "Jumpshare"} ↗</a>. Access depends on the file owner's sharing permissions.
+                  <a href={externalUrl} target="_blank" rel="noopener noreferrer" style={{ color:"var(--brand-700)", fontWeight:700 }}>Open the original recording link ↗</a>
+                  {" · "}Access and playback depend on the external website and its sharing settings.
                 </p>
               )}
               {/* Metadata */}
