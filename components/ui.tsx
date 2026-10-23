@@ -385,7 +385,7 @@ export const AppBar = ({ active, onNav, role = "STUDENT", showSearch = true, use
                     <Link
                       key={link.href}
                       href={link.href}
-                      className={pathname === link.href.split("?")[0] ? "active" : ""}
+                      className={!link.href.includes("?") && pathname === link.href ? "active" : ""}
                       onClick={() => setDrawerOpen(false)}
                     >
                       {link.label}
