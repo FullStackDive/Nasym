@@ -32,7 +32,7 @@ async function main() {
     console.info("Permissions seeded; admin and sample data skipped. Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD explicitly to bootstrap.");
     return;
   }
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(adminEmail)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)) {
     throw new Error("SEED_ADMIN_EMAIL must be a valid email address.");
   }
   if (adminPassword.length < 16) {
