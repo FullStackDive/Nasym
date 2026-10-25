@@ -159,7 +159,7 @@ const AuthClient = ({ mode: initialMode = "signin", googleEnabled = false }: { m
           <p style={{ marginTop: 8, fontSize: 12, color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>Sūrah al-Anbiyāʾ · 21:107</p>
         </div>
         <div style={{ position: "relative", display: "flex", gap: 16, color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
-          <span>{publicStats ? `${publicStats.students.toLocaleString()} student${publicStats.students === 1 ? "" : "s"}` : "— students"}</span><span>·</span><span>{publicStats ? `${publicStats.lessons.toLocaleString()} lesson${publicStats.lessons === 1 ? "" : "s"}` : "— lessons"}</span><span>·</span><span>Free for everyone</span>
+          <span>{publicStats ? `${publicStats.students.toLocaleString()}\u00a0\u00a0student${publicStats.students === 1 ? "" : "s"}` : "— students"}</span><span>·</span><span>{publicStats ? `${publicStats.lessons.toLocaleString()}\u00a0\u00a0lesson${publicStats.lessons === 1 ? "" : "s"}` : "— lessons"}</span><span>·</span><span>Free for everyone</span>
         </div>
       </div>
 
