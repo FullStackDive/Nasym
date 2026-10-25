@@ -23,13 +23,32 @@ async function main() {
     });
   }
 
-  const adminEmail = "admin@example.com";
-  const adminPassword = "Admin123!"; // change after first login
-  const passwordHash = await bcrypt.hash(adminPassword, 12);
+  // No admin is created with public/default credentials.
+  // Supply one-time values explicitly only when intentionally bootstrapping.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
 
+  if (!adminEmail || !adminPassword) {
+    console.info("Permissions seeded; admin and sample data skipped. Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD explicitly to bootstrap.");
+    return;
+  }
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(adminEmail)) {
+    throw new Error("SEED_ADMIN_EMAIL must be a valid email address.");
+  }
+  if (adminPassword.length < 16) {
+    throw new Error("SEED_ADMIN_PASSWORD must have at least 16 characters.");
+  }
+
+  // Never grant administrator permissions to an existing non-admin account.
+  const existingUser = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (existingUser && existingUser.role !== Role.ADMIN) {
+    throw new Error("SEED_ADMIN_EMAIL belongs to an existing non-admin account.");
+  }
+
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: {}, // Never overwrite an existing administrator's password or status.
     create: {
       name: "Admin",
       email: adminEmail,
@@ -193,10 +212,7 @@ async function main() {
     });
   }
 
-  console.log("Seed complete.");
-  console.log("Admin login:");
-  console.log("  email:", adminEmail);
-  console.log("  password:", adminPassword);
+  console.info("Seed complete. Administrator credentials were not printed.");
 }
 
 main()
