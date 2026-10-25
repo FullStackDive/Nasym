@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Icon, LogoMark } from "./ui";
@@ -41,7 +41,25 @@ const AuthClient = ({ mode: initialMode = "signin", googleEnabled = false }: { m
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [publicStats, setPublicStats] = useState<{ students: number; lessons: number } | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/public/stats", { signal: controller.signal })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (Number.isSafeInteger(data?.students) && data.students >= 0 &&
+            Number.isSafeInteger(data?.lessons) && data.lessons >= 0) {
+          setPublicStats({ students: data.students, lessons: data.lessons });
+        }
+      })
+      .catch(() => {
+        // Statistics are optional; a database/network issue must never block sign-in.
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const passwordStrength = Math.min(4, [
     password.length >= 8,
@@ -141,7 +159,7 @@ const AuthClient = ({ mode: initialMode = "signin", googleEnabled = false }: { m
           <p style={{ marginTop: 8, fontSize: 12, color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>Sūrah al-Anbiyāʾ · 21:107</p>
         </div>
         <div style={{ position: "relative", display: "flex", gap: 16, color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
-          <span>4,820 students</span><span>·</span><span>320+ lessons</span><span>·</span><span>Free for everyone</span>
+          <span>{publicStats ? `${publicStats.students.toLocaleString()} student${publicStats.students === 1 ? "" : "s"}` : "— students"}</span><span>·</span><span>{publicStats ? `${publicStats.lessons.toLocaleString()} lesson${publicStats.lessons === 1 ? "" : "s"}` : "— lessons"}</span><span>·</span><span>Free for everyone</span>
         </div>
       </div>
 
